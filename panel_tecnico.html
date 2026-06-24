@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PMOS — Panel Técnico (Fase 1)</title>
+<style>
+/* ===== PMOS Panel Técnico — Pesce Frutos de Mar — Fase 1 light =====
+   Paleta cámara fría: acero oscuro + cian hielo. */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#0E1620;color:#E8F0F6;padding-bottom:env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.pantalla{display:none;min-height:100vh}.pantalla.visible{display:block}
+
+/* Login */
+#scr-login{padding:28px 20px;max-width:430px;margin:0 auto}
+.marca{text-align:center;margin:24px 0 30px}
+.marca .logo{font-size:13px;letter-spacing:4px;color:#4FD8E0;font-weight:700}
+.marca h1{font-size:22px;font-weight:700;margin-top:6px}
+.marca .sub{color:#7E93A8;font-size:13px;margin-top:4px}
+.btn-nombre{display:block;width:100%;padding:18px 16px;margin-bottom:10px;background:#16222F;
+  border:1px solid #24364A;border-radius:14px;color:#E8F0F6;font-size:18px;font-weight:600;text-align:left}
+.btn-nombre:active{background:#1D2E3F}
+#zona-pin{display:none}
+#pin-quien{text-align:center;font-size:17px;margin-bottom:6px}
+#pin-puntos{text-align:center;font-size:30px;letter-spacing:14px;color:#4FD8E0;height:44px}
+#pin-error{text-align:center;color:#FF4D5E;font-size:14px;height:20px}
+.pinpad{display:flex;flex-wrap:wrap;max-width:300px;margin:10px auto 0}
+.pinpad button{flex:0 0 33.33%;height:72px;background:transparent;border:none;color:#E8F0F6;font-size:26px;font-weight:600}
+.pinpad button:active{color:#4FD8E0}
+.link-volver{display:block;text-align:center;color:#7E93A8;font-size:14px;margin-top:18px;background:none;border:none;width:100%;padding:10px}
+
+/* Home */
+#scr-home{padding:0 0 40px}
+.topbar{position:sticky;top:0;z-index:5;background:rgba(14,22,32,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-bottom:1px solid #24364A;padding:14px 18px;padding-top:calc(14px + env(safe-area-inset-top));
+  display:flex;justify-content:space-between;align-items:center}
+.topbar .quien{font-weight:700;font-size:16px}
+.topbar .quien span{color:#4FD8E0;font-size:11px;letter-spacing:2px;display:block}
+.topbar button{background:none;border:1px solid #24364A;border-radius:10px;color:#7E93A8;padding:8px 14px;font-size:13px}
+.barra-offline{display:none;text-align:center;font-size:13px;font-weight:600;padding:9px 14px}
+.barra-offline.sin-senal{background:#FFB659;color:#3A2A0E}
+.barra-offline.enviando{background:#4FD8E0;color:#0E1620}
+.seccion{padding:18px 18px 0;max-width:520px;margin:0 auto}
+.seccion h2{font-size:12px;letter-spacing:2px;color:#7E93A8;font-weight:700;margin-bottom:12px;text-transform:uppercase}
+
+/* Acciones grandes */
+.accion{display:flex;align-items:center;gap:15px;width:100%;text-align:left;background:#16222F;
+  border:1px solid #24364A;border-radius:18px;padding:20px 18px;margin-bottom:12px;color:#E8F0F6}
+.accion:active{background:#1D2E3F}
+.accion .ic{font-size:30px;width:42px;text-align:center}
+.accion .tx b{display:block;font-size:18px;font-weight:700}
+.accion .tx small{display:block;color:#7E93A8;font-size:13px;margin-top:2px}
+.accion.falla{border-color:#5A2C33}
+.accion.ronda{border-left:5px solid #4FD8E0}
+
+/* Resumen de hoy */
+.hoy{display:flex;gap:10px}
+.hoy .box{flex:1;background:#16222F;border:1px solid #24364A;border-radius:14px;padding:14px;text-align:center}
+.hoy .box b{font-size:26px;display:block;color:#4FD8E0}
+.hoy .box small{color:#7E93A8;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.lista-hoy{margin-top:12px}
+.item-hoy{background:#121D29;border:1px solid #1F3043;border-radius:11px;padding:10px 12px;margin-bottom:7px;font-size:13px}
+.item-hoy .h{color:#4FD8E0;font-weight:700;font-size:11px;letter-spacing:.5px}
+.item-hoy .d{margin-top:2px;line-height:1.35}
+.item-hoy .m{color:#7E93A8;font-size:12px;margin-top:2px}
+.vacio{color:#56697C;font-size:14px;padding:4px 2px}
+
+/* Modales */
+.modal-fondo{display:none;position:fixed;z-index:20;inset:0;background:rgba(8,13,19,.78)}
+.modal-fondo.visible{display:block}
+.modal{position:absolute;left:0;right:0;bottom:0;max-height:94%;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:#121D29;border-radius:22px 22px 0 0;border-top:1px solid #2A3D52;
+  padding:20px 20px calc(26px + env(safe-area-inset-bottom))}
+.modal h3{font-size:19px;margin-bottom:4px}
+.modal .sub{color:#7E93A8;font-size:13px;margin-bottom:16px}
+.campo{margin-bottom:14px}
+.campo label{display:block;font-size:12px;letter-spacing:1px;color:#7E93A8;font-weight:700;margin-bottom:6px;text-transform:uppercase}
+.campo input,.campo textarea,.campo select{width:100%;background:#0E1620;border:1px solid #24364A;border-radius:12px;
+  color:#E8F0F6;font-size:16px;padding:13px 12px;font-family:inherit;-webkit-appearance:none;appearance:none}
+.campo textarea{min-height:70px;resize:vertical}
+.campo .obl{color:#FF4D5E}
+.campo select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237E93A8'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center}
+.dos{display:flex;gap:10px}.dos>div{flex:1}
+.aviso-error{color:#FF6B7A;font-size:13.5px;min-height:18px;margin-bottom:6px}
+.btn{border:none;border-radius:14px;padding:17px 10px;font-size:16px;font-weight:700;color:#0E1620;width:100%}
+.btn:active{opacity:.85}
+.btn-ok{background:#46D68C}
+.btn-cian{background:#4FD8E0}
+.btn-falla{background:#FF6B7A;color:#fff}
+.btn-gris{background:none;border:none;color:#7E93A8;width:100%;padding:14px;font-size:15px}
+
+/* Grilla ronda — una mano con guante */
+#m-ronda .modal{padding-bottom:0}
+.ronda-prog{position:sticky;top:0;background:#121D29;z-index:2;padding-bottom:10px;margin:-2px 0 8px;border-bottom:1px solid #24364A}
+.ronda-prog .barra{height:7px;background:#1F3043;border-radius:99px;overflow:hidden;margin-top:8px}
+.ronda-prog .barra i{display:block;height:100%;background:#4FD8E0;transition:width .25s}
+.ronda-prog .txt{font-size:12.5px;color:#7E93A8;margin-top:5px}
+.punto{background:#0E1620;border:1px solid #1F3043;border-radius:13px;padding:11px 12px;margin-bottom:9px}
+.punto.completo{border-color:#2C4A3A}
+.punto .pn{font-size:15px;font-weight:700;margin-bottom:8px}
+.punto .pn .ok{color:#5FDD9C;font-size:13px;margin-left:6px}
+.vars{display:flex;flex-wrap:wrap;margin:0 -4px}
+.vbox{flex:1 1 22%;min-width:64px;margin:4px}
+.vbox label{display:block;font-size:11px;color:#7E93A8;font-weight:700;margin-bottom:3px;text-align:center}
+.vbox input{width:100%;background:#16222F;border:1.5px solid #24364A;border-radius:11px;color:#E8F0F6;
+  font-size:19px;font-weight:700;padding:13px 4px;text-align:center;-webkit-appearance:none;appearance:none;
+  font-family:ui-monospace,Menlo,monospace}
+.vbox input:focus{border-color:#4FD8E0;outline:none}
+.vbox input.fuera{border-color:#FF4D5E;color:#FF6B7A}
+.alerta-fase{background:rgba(255,77,94,.1);border:1px solid rgba(255,77,94,.4);border-radius:9px;
+  padding:7px 10px;margin-top:8px;font-size:12px;color:#FF8A96}
+.ronda-footer{position:sticky;bottom:0;background:#121D29;padding:12px 0 calc(16px + env(safe-area-inset-bottom));margin-top:6px;border-top:1px solid #24364A}
+
+#toast{display:none;position:fixed;z-index:40;left:18px;right:18px;bottom:calc(24px + env(safe-area-inset-bottom));
+  background:#1D2E3F;border:1px solid #2C5B66;color:#E8F0F6;border-radius:14px;padding:14px 16px;font-size:14.5px;
+  text-align:center;box-shadow:0 10px 28px rgba(0,0,0,.5)}
+#toast.ok{border-color:#46D68C}#toast.err{border-color:#FF4D5E}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="pantalla visible" id="scr-login">
+  <div class="marca">
+    <div class="logo">P M O S</div>
+    <h1>Mantenimiento</h1>
+    <div class="sub">Pesce Frutos de Mar &middot; Panel del t&eacute;cnico</div>
+  </div>
+  <div id="zona-nombres"></div>
+  <div id="zona-pin">
+    <div id="pin-quien"></div>
+    <div id="pin-puntos"></div>
+    <div id="pin-error"></div>
+    <div class="pinpad" id="pinpad"></div>
+    <button class="link-volver" onclick="volverANombres()">&larr; Elegir otro nombre</button>
+  </div>
+</div>
+
+<!-- ============ HOME ============ -->
+<div class="pantalla" id="scr-home">
+  <div class="topbar">
+    <div class="quien"><span>PMOS &middot; MANTENIMIENTO</span><span id="home-nombre" style="color:#E8F0F6;font-size:16px;letter-spacing:0"></span></div>
+    <button onclick="salir()">Salir</button>
+  </div>
+  <div id="barra-offline" class="barra-offline"></div>
+
+  <div class="seccion">
+    <h2>&iquest;Qu&eacute; vas a cargar?</h2>
+    <button class="accion" onclick="abrirTrabajo()">
+      <span class="ic">🛠</span><span class="tx"><b>Registrar trabajo</b><small>Qu&eacute; hiciste, con hora de inicio y fin</small></span></button>
+    <button class="accion falla" onclick="abrirFalla()">
+      <span class="ic">⚠️</span><span class="tx"><b>Reportar una falla</b><small>Qu&eacute; se vio, qu&eacute; se hizo y c&oacute;mo qued&oacute;</small></span></button>
+    <button class="accion ronda" onclick="abrirRonda()">
+      <span class="ic">📋</span><span class="tx"><b>Hacer la ronda</b><small>Amperaje y temperatura, r&aacute;pido</small></span></button>
+  </div>
+
+  <div class="seccion">
+    <h2>Lo que cargu&eacute; hoy</h2>
+    <div class="hoy">
+      <div class="box"><b id="h-trab">0</b><small>Trabajos</small></div>
+      <div class="box"><b id="h-falla">0</b><small>Fallas</small></div>
+      <div class="box"><b id="h-ronda">0</b><small>Rondas</small></div>
+    </div>
+    <div class="lista-hoy" id="lista-hoy"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL TRABAJO ============ -->
+<div class="modal-fondo" id="m-trabajo">
+  <div class="modal">
+    <h3>Registrar trabajo</h3>
+    <div class="sub">Cont&aacute; qu&eacute; hiciste y cu&aacute;nto te llev&oacute;.</div>
+    <div class="campo">
+      <label>Equipo o &aacute;rea <span class="obl">*</span></label>
+      <select id="t-eq"></select>
+    </div>
+    <div class="campo">
+      <label>Qu&eacute; hiciste <span class="obl">*</span></label>
+      <textarea id="t-desc" placeholder="Ej: cambi&eacute; el cable de alimentaci&oacute;n de la zunchadora N-2"></textarea>
+    </div>
+    <div class="dos">
+      <div class="campo"><label>Empez&oacute; <span class="obl">*</span></label><input type="time" id="t-ini"></div>
+      <div class="campo"><label>Termin&oacute; <span class="obl">*</span></label><input type="time" id="t-fin"></div>
+    </div>
+    <div class="aviso-error" id="t-error"></div>
+    <button class="btn btn-ok" onclick="guardarTrabajo()">Guardar trabajo</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL FALLA ============ -->
+<div class="modal-fondo" id="m-falla">
+  <div class="modal">
+    <h3>Reportar una falla</h3>
+    <div class="sub">Los tres campos son obligatorios. As&iacute; queda claro para el que sigue.</div>
+    <div class="campo">
+      <label>Equipo o &aacute;rea <span class="obl">*</span></label>
+      <select id="f-eq"></select>
+    </div>
+    <div class="campo">
+      <label>Qu&eacute; se vio <span class="obl">*</span></label>
+      <textarea id="f-vio" placeholder="Qu&eacute; estaba pasando realmente"></textarea>
+    </div>
+    <div class="campo">
+      <label>Qu&eacute; se hizo <span class="obl">*</span></label>
+      <textarea id="f-hizo" placeholder="Qu&eacute; acci&oacute;n tomaste"></textarea>
+    </div>
+    <div class="campo">
+      <label>C&oacute;mo qued&oacute; <span class="obl">*</span></label>
+      <textarea id="f-quedo" placeholder="Ej: operativo / operativo con observaciones / fuera de servicio / falta repuesto"></textarea>
+    </div>
+    <div class="aviso-error" id="f-error"></div>
+    <button class="btn btn-falla" onclick="guardarFalla()">Registrar falla</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL RONDA ============ -->
+<div class="modal-fondo" id="m-ronda">
+  <div class="modal">
+    <div class="ronda-prog">
+      <h3>Ronda de corrientes y temperatura</h3>
+      <div class="txt" id="ronda-sub"></div>
+      <div class="barra"><i id="ronda-barra" style="width:0%"></i></div>
+      <div class="txt" id="ronda-progreso"></div>
+    </div>
+    <div id="ronda-puntos"></div>
+    <div class="aviso-error" id="ronda-error"></div>
+    <div class="ronda-footer">
+      <button class="btn btn-cian" onclick="guardarRonda()">Guardar ronda</button>
+      <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   PMOS Panel Técnico — Fase 1 (light). JS vanilla, Safari iOS.
+   var en todo, sin arrow functions, sin template literals.
+   Backend: Google Sheets vía Apps Script (no SQL). Ver INSTRUCTIVO.
+   ===================================================================== */
+var CONFIG = {
+
+  /* 1) URL del Web App de Google Apps Script. Mientras esté vacía,
+        funciona igual y guarda en el teléfono (no se pierde nada). */
+  SHEET_URL: "https://script.google.com/macros/s/AKfycbxfsE3m6JfCYspGSSI9SK8T1CgjoGzubzzvPSM3DB-v7Huf9haZUq5TG0VagDYRANIB/exec",
+
+  /* 2) Equipo. Si dejás el PIN vacío, esa persona entra directo. */
+  tecnicos: [
+    { nombre: "Jorge",     pin: "" },
+    { nombre: "Daniel",    pin: "" },
+    { nombre: "Lucas",     pin: "" },
+    { nombre: "Franco",    pin: "" },
+    { nombre: "Diego",     pin: "" },
+    { nombre: "Fernando",  pin: "" },
+    { nombre: "Francisco", pin: "" },
+    { nombre: "Enrique",   pin: "" }
+  ],
+
+  /* 3) Equipos / áreas para los desplegables */
+  equipos: [
+    "Equipo 9","Equipo 10 Túnel 1","Equipo 11 Túnel 1","AACC Producción Grande","AACC Producción Chica",
+    "Cámara 1","Cámara 2","Cámara 3","Cámara 4","Central Cámara 3y4",
+    "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
+    "Máquina de hielo","Escamadora","Despinadora","Cinta transportadora","Sierra Moretti",
+    "Feteadora","Máquina de vacío","Peladora de calamar","Lava-cajones","Selladora","Zunchadora",
+    "Balanza","Clorinador","Calderas / Termotanques","Bombas","Tablero / Eléctrico","Otro"
+  ],
+
+  /* 4) Puntos de la ronda (una lectura por punto) */
+  puntosRonda: [
+    "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
+    "Cámara 1","Cámara 2","Túnel 1","Túnel 2","Cámara 3","Cámara 4","Máquina de hielo"
+  ],
+
+  /* 5) Temperatura: arranca con este valor negativo ya puesto */
+  TEMP_DEFAULT: -18,
+  TEMP_MIN: -30, TEMP_MAX: 5,
+
+  /* 6) Desbalance de fases (igual que tu panel): salta si la diferencia
+        entre la fase más alta y la más baja supera 30%, con piso de 8 A. */
+  UMBRAL_DESBALANCE: 0.30,
+  MIN_AMP: 8,
+  FASES: ["R","D","T"]
+};
+
+/* ---------------- estado ---------------- */
+var SES = { nombre: null };
+var pinBuffer = "", pinEsperado = "", pinNombre = "";
+
+/* ---------------- helpers ---------------- */
+function $(id){ return document.getElementById(id); }
+function dosDig(n){ return (n<10?"0":"")+n; }
+function ahoraHHMM(){ var d=new Date(); return dosDig(d.getHours())+":"+dosDig(d.getMinutes()); }
+function hoyKey(){ var d=new Date(); return d.getFullYear()+"-"+dosDig(d.getMonth()+1)+"-"+dosDig(d.getDate()); }
+function toast(msg, tipo){
+  var t=$("toast"); t.textContent=msg; t.className=(tipo||""); t.style.display="block";
+  setTimeout(function(){ t.style.display="none"; }, 2400);
+}
+function llenarSelect(sel, arr){
+  var h="<option value=''>Elegí…</option>", i;
+  for(i=0;i<arr.length;i++) h+="<option>"+arr[i]+"</option>";
+  sel.innerHTML=h;
+}
+
+/* ---------------- almacenamiento local + envío a Sheets ---------------- */
+var OUTBOX_KEY="pmos_f1_outbox", LOG_KEY="pmos_f1_log";
+function leer(k){ try{ return JSON.parse(window.localStorage.getItem(k)||"[]"); }catch(e){ return []; } }
+function escribir(k,a){ try{ window.localStorage.setItem(k, JSON.stringify(a)); }catch(e){} }
+
+function registrar(tipo, datos){
+  var rec = { tipo: tipo, fecha: new Date().toISOString(), dia: hoyKey(),
+              tecnico: SES.nombre, datos: datos, enviado: false,
+              uid: Date.now().toString(36)+Math.random().toString(36).slice(2,6) };
+  var ob = leer(OUTBOX_KEY); ob.push(rec); escribir(OUTBOX_KEY, ob);
+  var log = leer(LOG_KEY); log.push(rec); escribir(LOG_KEY, log);
+  enviarPendientes();
+  refrescarHoy();
+}
+function enviarPendientes(){
+  if(!CONFIG.SHEET_URL){ marcarBarra("sin-senal","Modo local — configurá Google Sheets para centralizar"); return; }
+  var ob = leer(OUTBOX_KEY); var pend = [], i;
+  for(i=0;i<ob.length;i++) if(!ob[i].enviado) pend.push(ob[i]);
+  if(pend.length===0){ ocultarBarra(); return; }
+  if(!navigator.onLine){ marcarBarra("sin-senal","Sin señal — se enviará solo al reconectar ("+pend.length+")"); return; }
+  marcarBarra("enviando","Enviando "+pend.length+"…");
+  enviarUno(pend, 0);
+}
+function enviarUno(pend, idx){
+  if(idx>=pend.length){ ocultarBarra(); return; }
+  var rec = pend[idx];
+  var x = new XMLHttpRequest();
+  x.open("POST", CONFIG.SHEET_URL, true);
+  x.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
+  x.timeout = 12000;
+  x.onload = function(){ marcarEnviado(rec.uid); enviarUno(pend, idx+1); };
+  x.onerror = function(){ marcarBarra("sin-senal","No se pudo enviar — queda guardado"); };
+  x.ontimeout = function(){ marcarBarra("sin-senal","Sin señal — queda guardado"); };
+  x.send(JSON.stringify(rec));
+}
+function marcarEnviado(uid){
+  var ob=leer(OUTBOX_KEY), i; for(i=0;i<ob.length;i++) if(ob[i].uid===uid) ob[i].enviado=true; escribir(OUTBOX_KEY, ob);
+}
+function marcarBarra(clase, txt){ var b=$("barra-offline"); b.className="barra-offline "+clase; b.textContent=txt; b.style.display="block";
+  if(clase==="enviando") setTimeout(ocultarBarra, 1500); }
+function ocultarBarra(){ $("barra-offline").style.display="none"; }
+window.addEventListener("online", enviarPendientes);
+
+/* ---------------- login ---------------- */
+function pintarNombres(){
+  var h="", i;
+  for(i=0;i<CONFIG.tecnicos.length;i++) h+="<button class='btn-nombre' onclick='elegirNombre("+i+")'>"+CONFIG.tecnicos[i].nombre+"</button>";
+  $("zona-nombres").innerHTML=h;
+}
+function elegirNombre(i){
+  var t=CONFIG.tecnicos[i];
+  if(!t.pin){ entrar(t.nombre); return; }
+  pinNombre=t.nombre; pinEsperado=t.pin; pinBuffer="";
+  $("zona-nombres").style.display="none"; $("zona-pin").style.display="block";
+  $("pin-quien").textContent=t.nombre; $("pin-error").textContent=""; pintarPin();
+}
+function pintarPin(){
+  $("pin-puntos").textContent = pinBuffer.replace(/./g,"\u25CF");
+  var teclas=["1","2","3","4","5","6","7","8","9","","0","\u232B"], h="", i;
+  for(i=0;i<teclas.length;i++){
+    if(teclas[i]==="") h+="<button disabled></button>";
+    else h+="<button onclick='tecla(\""+teclas[i]+"\")'>"+teclas[i]+"</button>";
+  }
+  $("pinpad").innerHTML=h;
+}
+function tecla(t){
+  if(t==="\u232B"){ pinBuffer=pinBuffer.slice(0,-1); }
+  else if(pinBuffer.length<4){ pinBuffer+=t; }
+  pintarPin();
+  if(pinBuffer.length===4){
+    if(pinBuffer===pinEsperado) entrar(pinNombre);
+    else { $("pin-error").textContent="PIN incorrecto"; pinBuffer=""; setTimeout(pintarPin,400); }
+  }
+}
+function volverANombres(){ $("zona-pin").style.display="none"; $("zona-nombres").style.display="block"; }
+function entrar(nombre){
+  SES.nombre=nombre;
+  $("scr-login").className="pantalla"; $("scr-home").className="pantalla visible";
+  $("home-nombre").textContent=nombre;
+  refrescarHoy(); enviarPendientes();
+}
+function salir(){
+  SES.nombre=null;
+  $("scr-home").className="pantalla"; $("scr-login").className="pantalla visible";
+  volverANombres();
+}
+
+/* ---------------- resumen de hoy ---------------- */
+function refrescarHoy(){
+  var log=leer(LOG_KEY), hoy=hoyKey(), mios=[], i, c={trabajo:0,falla:0,ronda:0};
+  for(i=0;i<log.length;i++){ var r=log[i];
+    if(r.dia===hoy && r.tecnico===SES.nombre){ mios.push(r); if(c[r.tipo]!=null) c[r.tipo]++; }
+  }
+  $("h-trab").textContent=c.trabajo; $("h-falla").textContent=c.falla; $("h-ronda").textContent=c.ronda;
+  mios.reverse();
+  var h="", n=Math.min(mios.length,6);
+  if(mios.length===0){ $("lista-hoy").innerHTML="<div class='vacio'>Todav&iacute;a no cargaste nada hoy.</div>"; return; }
+  for(i=0;i<n;i++){ var r2=mios[i], et={trabajo:"TRABAJO",falla:"FALLA",ronda:"RONDA"}[r2.tipo];
+    var d=resumenItem(r2), hh=r2.fecha.slice(11,16);
+    h+="<div class='item-hoy'><div class='h'>"+et+" &middot; "+hh+"</div><div class='d'>"+d.linea+"</div>"+(d.meta?"<div class='m'>"+d.meta+"</div>":"")+"</div>";
+  }
+  $("lista-hoy").innerHTML=h;
+}
+function resumenItem(r){
+  if(r.tipo==="trabajo") return { linea:(r.datos.equipo||"")+": "+r.datos.descripcion, meta:r.datos.inicio+"–"+r.datos.fin+" ("+r.datos.duracion_min+" min)" };
+  if(r.tipo==="falla")   return { linea:(r.datos.equipo||"")+": "+r.datos.que_se_vio, meta:"→ "+r.datos.como_quedo };
+  return { linea:"Ronda completa", meta:r.datos.puntos.length+" puntos cargados" };
+}
+
+/* ---------------- modales ---------------- */
+function cerrarModales(){ var m=document.querySelectorAll(".modal-fondo"), i; for(i=0;i<m.length;i++) m[i].className="modal-fondo"; }
+function abrir(id){ $(id).className="modal-fondo visible"; }
+
+/* TRABAJO */
+function abrirTrabajo(){
+  llenarSelect($("t-eq"), CONFIG.equipos);
+  $("t-desc").value=""; $("t-error").textContent="";
+  $("t-ini").value=ahoraHHMM(); $("t-fin").value="";
+  abrir("m-trabajo");
+}
+function diffMin(ini, fin){
+  if(!ini||!fin) return "";
+  var a=ini.split(":"), b=fin.split(":");
+  var m=(parseInt(b[0],10)*60+parseInt(b[1],10))-(parseInt(a[0],10)*60+parseInt(a[1],10));
+  if(m<0) m+=24*60; return m;
+}
+function guardarTrabajo(){
+  var eq=$("t-eq").value, desc=$("t-desc").value.replace(/^\s+|\s+$/g,""), ini=$("t-ini").value, fin=$("t-fin").value;
+  if(!eq){ $("t-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
+  if(!desc){ $("t-error").textContent="Escrib&iacute; qu&eacute; hiciste."; return; }
+  if(!ini||!fin){ $("t-error").textContent="Cargá hora de inicio y fin."; return; }
+  registrar("trabajo", { equipo:eq, descripcion:desc, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin) });
+  cerrarModales(); toast("✓ Trabajo guardado","ok");
+}
+
+/* FALLA */
+function abrirFalla(){
+  llenarSelect($("f-eq"), CONFIG.equipos);
+  $("f-vio").value=""; $("f-hizo").value=""; $("f-quedo").value=""; $("f-error").textContent="";
+  abrir("m-falla");
+}
+function guardarFalla(){
+  var eq=$("f-eq").value, vio=val("f-vio"), hizo=val("f-hizo"), quedo=val("f-quedo");
+  if(!eq){ $("f-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
+  if(!vio||!hizo||!quedo){ $("f-error").textContent="Los tres campos son obligatorios."; return; }
+  registrar("falla", { equipo:eq, que_se_vio:vio, que_se_hizo:hizo, como_quedo:quedo });
+  cerrarModales(); toast("✓ Falla registrada","ok");
+}
+function val(id){ return $(id).value.replace(/^\s+|\s+$/g,""); }
+
+/* RONDA */
+function abrirRonda(){
+  var h="", i, j, p;
+  for(i=0;i<CONFIG.puntosRonda.length;i++){
+    p=CONFIG.puntosRonda[i];
+    h+="<div class='punto' id='pt-"+i+"'><div class='pn'>"+p+"<span class='ok' id='ok-"+i+"'></span></div><div class='vars'>";
+    for(j=0;j<3;j++) h+="<div class='vbox'><label>"+CONFIG.FASES[j]+"</label><input class='mono' type='number' inputmode='decimal' id='f"+i+"-"+j+"' oninput='chequear("+i+")' placeholder='0'></div>";
+    h+="<div class='vbox'><label>Temp</label><input class='mono' type='number' inputmode='decimal' id='f"+i+"-t' value='"+CONFIG.TEMP_DEFAULT+"' oninput='chequear("+i+")'></div>";
+    h+="</div><div id='al-"+i+"'></div></div>";
+  }
+  $("ronda-puntos").innerHTML=h;
+  $("ronda-sub").textContent="Toc&aacute; y carg&aacute;. La temperatura ya viene en "+CONFIG.TEMP_DEFAULT+"\u00b0, ajust&aacute; si hace falta.";
+  $("ronda-error").textContent="";
+  actualizarProgreso();
+  abrir("m-ronda");
+}
+function numero(id){ var v=$(id).value; return v===""?null:parseFloat(v); }
+function chequear(i){
+  var r=numero("f"+i+"-0"), d=numero("f"+i+"-1"), t=numero("f"+i+"-2"), temp=numero("f"+i+"-t");
+  // temp fuera de rango
+  var inT=$("f"+i+"-t"); inT.className="mono"+((temp!==null && (temp<CONFIG.TEMP_MIN||temp>CONFIG.TEMP_MAX))?" fuera":"");
+  // desbalance
+  var al=$("al-"+i), fueraFase=false;
+  if(r!==null && d!==null && t!==null){
+    var max=Math.max(r,d,t), min=Math.min(r,d,t);
+    if(max>=CONFIG.MIN_AMP && max>0 && (max-min)/max>CONFIG.UMBRAL_DESBALANCE){
+      fueraFase=true;
+      var pct=Math.round((max-min)/max*100);
+      al.innerHTML="<div class='alerta-fase'>⚠ Desbalance "+pct+"% entre fases — revisar conexi&oacute;n / carga</div>";
+    } else al.innerHTML="";
+  } else al.innerHTML="";
+  var j; for(j=0;j<3;j++){ var inp=$("f"+i+"-"+j); inp.className="mono"+(fueraFase?" fuera":""); }
+  // completo
+  var comp=(r!==null && d!==null && t!==null && temp!==null);
+  $("ok-"+i).textContent=comp?"✓":"";
+  $("pt-"+i).className="punto"+(comp?" completo":"");
+  actualizarProgreso();
+}
+function actualizarProgreso(){
+  var total=CONFIG.puntosRonda.length, hechos=0, i;
+  for(i=0;i<total;i++){ if(numero("f"+i+"-0")!==null && numero("f"+i+"-1")!==null && numero("f"+i+"-2")!==null && numero("f"+i+"-t")!==null) hechos++; }
+  $("ronda-barra").style.width=Math.round(hechos/total*100)+"%";
+  $("ronda-progreso").textContent=hechos+" de "+total+" puntos";
+}
+function guardarRonda(){
+  var puntos=[], i, parciales=0;
+  for(i=0;i<CONFIG.puntosRonda.length;i++){
+    var r=numero("f"+i+"-0"), d=numero("f"+i+"-1"), t=numero("f"+i+"-2"), temp=numero("f"+i+"-t");
+    if(r===null && d===null && t===null) continue; // punto sin cargar, se saltea
+    if(r===null || d===null || t===null){ parciales++; continue; }
+    var max=Math.max(r,d,t), min=Math.min(r,d,t);
+    var desb = (max>=CONFIG.MIN_AMP && max>0 && (max-min)/max>CONFIG.UMBRAL_DESBALANCE) ? Math.round((max-min)/max*100) : 0;
+    puntos.push({ punto:CONFIG.puntosRonda[i], R:r, D:d, T:t, temp:temp, desbalance_pct:desb });
+  }
+  if(puntos.length===0){ $("ronda-error").textContent="Carg&aacute; al menos un punto completo (3 fases)."; return; }
+  if(parciales>0){ $("ronda-error").textContent="Hay "+parciales+" punto(s) con fases a medias. Complet&aacute; las 3 o dej&aacute;lo vac&iacute;o."; return; }
+  registrar("ronda", { horario:ahoraHHMM(), puntos:puntos });
+  cerrarModales(); toast("✓ Ronda guardada ("+puntos.length+" puntos)","ok");
+}
+
+/* ---------------- init ---------------- */
+pintarNombres();
+</script>
+</body>
+</html>

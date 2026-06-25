@@ -182,7 +182,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     </div>
     <div class="campo">
       <label>Qu&eacute; hiciste <span class="obl">*</span></label>
-      <textarea id="t-desc" placeholder="Ej: cambi&eacute; el cable de alimentaci&oacute;n de la zunchadora N-2"></textarea>
+      <textarea id="t-desc" placeholder="Ej: cambi&eacute; los rodamientos de adelante de la zorra 4"></textarea>
+    </div>
+    <div class="campo">
+      <label>C&oacute;mo qued&oacute; <span class="obl">*</span></label>
+      <textarea id="t-quedo" placeholder="Ej: funcionando, pero el eje est&aacute; doblado, falta repuesto"></textarea>
     </div>
     <div class="dos">
       <div class="campo"><label>Empez&oacute; <span class="obl">*</span></label><input type="time" id="t-ini"></div>
@@ -231,6 +235,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
       <div class="txt" id="ronda-progreso"></div>
     </div>
     <div id="ronda-puntos"></div>
+    <div class="campo" style="margin-top:6px">
+      <label>&iquest;Viste algo fuera de lo com&uacute;n? (opcional)</label>
+      <textarea id="ronda-obs" placeholder="Ej: ruido raro en compresor 3, escarcha despareja en t&uacute;nel 2, olor a quemado&hellip; (dej&aacute;lo vac&iacute;o si est&aacute; todo normal)"></textarea>
+    </div>
     <div class="aviso-error" id="ronda-error"></div>
     <div class="ronda-footer">
       <button class="btn btn-cian" onclick="guardarRonda()">Guardar ronda</button>
@@ -249,8 +257,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
    ===================================================================== */
 var CONFIG = {
 
-  /* 1) URL del Web App de Google Apps Script. Mientras esté vacía,
-        funciona igual y guarda en el teléfono (no se pierde nada). */
+  /* 1) URL del Web App de Google Apps Script. (Ya está puesta la tuya.)
+        VERIFICÁ que sea idéntica a tu URL que termina en /exec; si no,
+        pegá la tuya entre las comillas. */
   SHEET_URL: "https://script.google.com/macros/s/AKfycbxfsE3m6JfCYspGSSI9SK8T1CgjoGzubzzvPSM3DB-v7Huf9haZUq5TG0VagDYRANIB/exec",
 
   /* 2) Equipo. Si dejás el PIN vacío, esa persona entra directo. */
@@ -265,14 +274,13 @@ var CONFIG = {
     { nombre: "Enrique",   pin: "" }
   ],
 
-  /* 3) Equipos / áreas para los desplegables */
+  /* 3) Sectores para los desplegables (Trabajo y Falla) */
   equipos: [
-    "Equipo 9","Equipo 10 Túnel 1","Equipo 11 Túnel 1","AACC Producción Grande","AACC Producción Chica",
-    "Cámara 1","Cámara 2","Cámara 3","Cámara 4","Central Cámara 3y4",
+    "Túnel 1","Túnel 2","Producción Grande","Producción Chica","Kioscos","Despacho","Taller",
+    "Cámara 1","Cámara 2","Cámara 3","Cámara 4","Central Cámara 3y4","Techos","Zona compresores",
     "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
-    "Máquina de hielo","Escamadora","Despinadora","Cinta transportadora","Sierra Moretti",
-    "Feteadora","Máquina de vacío","Peladora de calamar","Lava-cajones","Selladora","Zunchadora",
-    "Balanza","Clorinador","Calderas / Termotanques","Bombas","Tablero / Eléctrico","Otro"
+    "Máquina de hielo","Zona de Lavado","Zona de Basura","Calderas / Termotanques","Tablero / Eléctrico",
+    "Sector Cajas","Velez","Administración","Otros"
   ],
 
   /* 4) Puntos de la ronda (una lectura por punto) */
@@ -415,7 +423,7 @@ function refrescarHoy(){
   $("lista-hoy").innerHTML=h;
 }
 function resumenItem(r){
-  if(r.tipo==="trabajo") return { linea:(r.datos.equipo||"")+": "+r.datos.descripcion, meta:r.datos.inicio+"–"+r.datos.fin+" ("+r.datos.duracion_min+" min)" };
+  if(r.tipo==="trabajo") return { linea:(r.datos.equipo||"")+": "+r.datos.que_hiciste, meta:"→ "+r.datos.como_quedo+" · "+r.datos.inicio+"–"+r.datos.fin+" ("+r.datos.duracion_min+" min)" };
   if(r.tipo==="falla")   return { linea:(r.datos.equipo||"")+": "+r.datos.que_se_vio, meta:"→ "+r.datos.como_quedo };
   return { linea:"Ronda completa", meta:r.datos.puntos.length+" puntos cargados" };
 }
@@ -427,7 +435,7 @@ function abrir(id){ $(id).className="modal-fondo visible"; }
 /* TRABAJO */
 function abrirTrabajo(){
   llenarSelect($("t-eq"), CONFIG.equipos);
-  $("t-desc").value=""; $("t-error").textContent="";
+  $("t-desc").value=""; $("t-quedo").value=""; $("t-error").textContent="";
   $("t-ini").value=ahoraHHMM(); $("t-fin").value="";
   abrir("m-trabajo");
 }
@@ -438,11 +446,12 @@ function diffMin(ini, fin){
   if(m<0) m+=24*60; return m;
 }
 function guardarTrabajo(){
-  var eq=$("t-eq").value, desc=$("t-desc").value.replace(/^\s+|\s+$/g,""), ini=$("t-ini").value, fin=$("t-fin").value;
+  var eq=$("t-eq").value, desc=$("t-desc").value.replace(/^\s+|\s+$/g,""), quedo=$("t-quedo").value.replace(/^\s+|\s+$/g,""), ini=$("t-ini").value, fin=$("t-fin").value;
   if(!eq){ $("t-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
   if(!desc){ $("t-error").textContent="Escrib&iacute; qu&eacute; hiciste."; return; }
+  if(!quedo){ $("t-error").textContent="Escrib&iacute; c&oacute;mo qued&oacute;."; return; }
   if(!ini||!fin){ $("t-error").textContent="Cargá hora de inicio y fin."; return; }
-  registrar("trabajo", { equipo:eq, descripcion:desc, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin) });
+  registrar("trabajo", { equipo:eq, que_hiciste:desc, como_quedo:quedo, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin) });
   cerrarModales(); toast("✓ Trabajo guardado","ok");
 }
 
@@ -472,6 +481,7 @@ function abrirRonda(){
     h+="</div><div id='al-"+i+"'></div></div>";
   }
   $("ronda-puntos").innerHTML=h;
+  $("ronda-obs").value="";
   $("ronda-sub").textContent="Toc&aacute; y carg&aacute;. La temperatura ya viene en "+CONFIG.TEMP_DEFAULT+"\u00b0, ajust&aacute; si hace falta.";
   $("ronda-error").textContent="";
   actualizarProgreso();
@@ -517,7 +527,8 @@ function guardarRonda(){
   }
   if(puntos.length===0){ $("ronda-error").textContent="Carg&aacute; al menos un punto completo (3 fases)."; return; }
   if(parciales>0){ $("ronda-error").textContent="Hay "+parciales+" punto(s) con fases a medias. Complet&aacute; las 3 o dej&aacute;lo vac&iacute;o."; return; }
-  registrar("ronda", { horario:ahoraHHMM(), puntos:puntos });
+  var obs=$("ronda-obs").value.replace(/^\s+|\s+$/g,"");
+  registrar("ronda", { horario:ahoraHHMM(), observacion:obs, puntos:puntos });
   cerrarModales(); toast("✓ Ronda guardada ("+puntos.length+" puntos)","ok");
 }
 

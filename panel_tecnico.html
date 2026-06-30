@@ -126,6 +126,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .bat-opt.sel-cargado{border-color:#46D68C;color:#46D68C;background:rgba(70,214,140,.1);}
 .bat-opt.sel-cargandose{border-color:#F2B33D;color:#F2B33D;background:rgba(242,179,61,.1);}
 .bat-opt.sel-puesto{border-color:#7E93A8;color:#E8F0F6;background:rgba(126,147,168,.12);}
+/* botones tipo chip (tipo de cierre, estado y urgencia de falla) */
+.chips{display:flex;gap:7px;flex-wrap:wrap;}
+.chip{flex:1 1 auto;min-width:0;border:1.5px solid #24364A;border-radius:11px;padding:13px 8px;text-align:center;
+  font-size:14px;font-weight:600;color:#7E93A8;background:#16222F;line-height:1.25;}
+.chip.on{border-color:#4FD8E0;color:#06121a;background:#4FD8E0;}
 /* compresor en fila (etiqueta + R/D/T) */
 .comp-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
 .comp-row .cl{flex:0 0 92px;font-size:13px;font-weight:600;color:#C9D6E0;}
@@ -136,13 +141,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 /* temperaturas con signo */
 .temps-zona{margin-top:6px;padding-top:10px;border-top:1px dashed #24364A;}
 .temp-row{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
-.temp-row .tl{flex:0 0 110px;font-size:13px;font-weight:600;color:#9FE3EA;}
+.temp-row .tl{flex:1;font-size:13px;font-weight:600;color:#9FE3EA;}
 .temp-sign{width:46px;height:48px;border-radius:11px;border:1.5px solid #24364A;font-size:24px;font-weight:800;
-  background:#16222F;color:#7E93A8;}
+  background:#16222F;color:#7E93A8;flex:0 0 auto;}
 .temp-sign.neg{border-color:#4FD8E0;color:#4FD8E0;background:rgba(79,216,224,.12);}
 .temp-sign.pos{border-color:#F2B33D;color:#F2B33D;background:rgba(242,179,61,.12);}
-.temp-mag{flex:1;background:#16222F;border:1.5px solid #24364A;border-radius:11px;color:#E8F0F6;
-  font-size:21px;font-weight:700;padding:12px 8px;text-align:center;-webkit-appearance:none;appearance:none;
+.temp-mag{flex:0 0 76px;width:76px;background:#16222F;border:1.5px solid #24364A;border-radius:11px;color:#E8F0F6;
+  font-size:21px;font-weight:700;padding:12px 4px;text-align:center;-webkit-appearance:none;appearance:none;
   font-family:ui-monospace,Menlo,monospace;}
 .temp-mag:focus{border-color:#4FD8E0;outline:none;}
 .temp-unit{flex:0 0 auto;color:#7E93A8;font-size:15px;font-weight:700;}
@@ -210,23 +215,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 <div class="modal-fondo" id="m-trabajo">
   <div class="modal">
     <h3>Registrar trabajo</h3>
-    <div class="sub">Cont&aacute; qu&eacute; hiciste y cu&aacute;nto te llev&oacute;.</div>
+    <div class="sub">Qu&eacute; pasaba, qu&eacute; hiciste y c&oacute;mo qued&oacute;.</div>
     <div class="campo">
       <label>Equipo o &aacute;rea <span class="obl">*</span></label>
       <select id="t-eq"></select>
     </div>
     <div class="campo">
+      <label>Qu&eacute; pasaba <span class="obl">*</span></label>
+      <textarea id="t-pasaba" placeholder="El s&iacute;ntoma. Ej: la zorra 4 hac&iacute;a ruido y no frenaba"></textarea>
+    </div>
+    <div class="campo">
       <label>Qu&eacute; hiciste <span class="obl">*</span></label>
-      <textarea id="t-desc" placeholder="Ej: cambi&eacute; los rodamientos de adelante de la zorra 4"></textarea>
+      <textarea id="t-desc" placeholder="Ej: cambi&eacute; los rodamientos de adelante"></textarea>
     </div>
     <div class="campo">
       <label>C&oacute;mo qued&oacute; <span class="obl">*</span></label>
       <textarea id="t-quedo" placeholder="Ej: funcionando, pero el eje est&aacute; doblado, falta repuesto"></textarea>
     </div>
+    <div class="campo">
+      <label>Repuesto usado <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
+      <input type="text" id="t-rep" placeholder="Ej: 2 rodamientos 6204 / ninguno">
+    </div>
+    <div class="campo">
+      <label>Tipo de cierre <span class="obl">*</span></label>
+      <div class="chips" id="t-cierre">
+        <div class="chip" id="t-cierre-def" onclick="selCierre('definitivo')">Definitivo</div>
+        <div class="chip" id="t-cierre-prov" onclick="selCierre('provisorio')">Provisorio</div>
+      </div>
+    </div>
     <div class="dos">
       <div class="campo"><label>Empez&oacute; <span class="obl">*</span></label><input type="time" id="t-ini"></div>
       <div class="campo"><label>Termin&oacute; <span class="obl">*</span></label><input type="time" id="t-fin"></div>
     </div>
+    <div style="font-size:11.5px;color:#7E93A8;margin:-6px 2px 8px">Toc&aacute; la hora para cambiarla. El inicio viene puesto pero lo pod&eacute;s editar.</div>
     <div class="aviso-error" id="t-error"></div>
     <button class="btn btn-ok" onclick="guardarTrabajo()">Guardar trabajo</button>
     <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
@@ -237,22 +258,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 <div class="modal-fondo" id="m-falla">
   <div class="modal">
     <h3>Reportar una falla</h3>
-    <div class="sub">Los tres campos son obligatorios. As&iacute; queda claro para el que sigue.</div>
+    <div class="sub">Algo que viste mal. No hace falta que lo arregles &mdash; con reportarlo alcanza.</div>
     <div class="campo">
       <label>Equipo o &aacute;rea <span class="obl">*</span></label>
       <select id="f-eq"></select>
     </div>
     <div class="campo">
-      <label>Qu&eacute; se vio <span class="obl">*</span></label>
-      <textarea id="f-vio" placeholder="Qu&eacute; estaba pasando realmente"></textarea>
+      <label>Qu&eacute; viste mal <span class="obl">*</span></label>
+      <textarea id="f-vio" placeholder="Ej: la c&aacute;mara 2 tiene agua goteando del techo sobre la mercader&iacute;a"></textarea>
     </div>
     <div class="campo">
-      <label>Qu&eacute; se hizo <span class="obl">*</span></label>
-      <textarea id="f-hizo" placeholder="Qu&eacute; acci&oacute;n tomaste"></textarea>
+      <label>&iquest;C&oacute;mo est&aacute;? <span class="obl">*</span></label>
+      <div class="chips" id="f-estado">
+        <div class="chip" id="f-est-anda" onclick="selEstadoFalla('anda')">🔧 Anda pero hay que verlo</div>
+        <div class="chip" id="f-est-noanda" onclick="selEstadoFalla('fuera')">⛔ No anda</div>
+        <div class="chip" id="f-est-rep" onclick="selEstadoFalla('repuesto')">📦 Falta repuesto</div>
+      </div>
     </div>
     <div class="campo">
-      <label>C&oacute;mo qued&oacute; <span class="obl">*</span></label>
-      <textarea id="f-quedo" placeholder="Ej: operativo / operativo con observaciones / fuera de servicio / falta repuesto"></textarea>
+      <label>&iquest;Urge? <span class="obl">*</span></label>
+      <div class="chips" id="f-urg">
+        <div class="chip" id="f-urg-esp" onclick="selUrgFalla('puede_esperar')">Puede esperar</div>
+        <div class="chip" id="f-urg-urg" onclick="selUrgFalla('urgente')">Urgente</div>
+      </div>
     </div>
     <div class="aviso-error" id="f-error"></div>
     <button class="btn btn-falla" onclick="guardarFalla()">Registrar falla</button>
@@ -303,7 +331,6 @@ var CONFIG = {
     { nombre: "Daniel",    pin: "" },
     { nombre: "Lucas",     pin: "" },
     { nombre: "Franco",    pin: "" },
-    { nombre: "Diego",     pin: "" },
     { nombre: "Fernando",  pin: "" },
     { nombre: "Francisco", pin: "" },
     { nombre: "Enrique",   pin: "" }
@@ -325,7 +352,7 @@ var CONFIG = {
   /* 5) Desbalance de fases: salta si diferencia > 30%, piso 8 A */
   UMBRAL_DESBALANCE: 0.30,
   MIN_AMP: 8,
-  FASES: ["R","D","T"],
+  FASES: ["R","S","T"],
 
   /* 6) Secciones de la ronda. Tipos:
        "cont"    → cada contenedor: R/D/T + 1 temp
@@ -473,19 +500,27 @@ function refrescarHoy(){
   $("lista-hoy").innerHTML=h;
 }
 function resumenItem(r){
-  if(r.tipo==="trabajo") return { linea:(r.datos.equipo||"")+": "+r.datos.que_hiciste, meta:"→ "+r.datos.como_quedo+" · "+r.datos.inicio+"–"+r.datos.fin+" ("+r.datos.duracion_min+" min)" };
-  if(r.tipo==="falla")   return { linea:(r.datos.equipo||"")+": "+r.datos.que_se_vio, meta:"→ "+r.datos.como_quedo };
-  return { linea:"Ronda completa", meta:r.datos.puntos.length+" puntos cargados" };
+  if(r.tipo==="trabajo") return { linea:(r.datos.equipo||"")+": "+r.datos.que_hiciste, meta:"→ "+r.datos.como_quedo+" · "+r.datos.tipo_cierre+" · "+r.datos.inicio+"–"+r.datos.fin+" ("+r.datos.duracion_min+" min)" };
+  if(r.tipo==="falla")   return { linea:(r.datos.equipo||"")+": "+r.datos.que_viste, meta:"→ "+etiquetaEstado(r.datos.estado)+(r.datos.urgencia==="urgente"?" · URGENTE":"") };
+  return { linea:"Ronda completa", meta:r.datos.puntos.length+" registros" };
 }
+function etiquetaEstado(e){ return {anda:"Anda pero hay que verlo",fuera:"No anda",repuesto:"Falta repuesto"}[e]||e; }
 
 /* ---------------- modales ---------------- */
 function cerrarModales(){ var m=document.querySelectorAll(".modal-fondo"), i; for(i=0;i<m.length;i++) m[i].className="modal-fondo"; }
 function abrir(id){ $(id).className="modal-fondo visible"; }
 
 /* TRABAJO */
+var cierreSel=null;
+function selCierre(v){
+  cierreSel=v;
+  $("t-cierre-def").className="chip"+(v==="definitivo"?" on":"");
+  $("t-cierre-prov").className="chip"+(v==="provisorio"?" on":"");
+}
 function abrirTrabajo(){
   llenarSelect($("t-eq"), CONFIG.equipos);
-  $("t-desc").value=""; $("t-quedo").value=""; $("t-error").textContent="";
+  $("t-pasaba").value=""; $("t-desc").value=""; $("t-quedo").value=""; $("t-rep").value=""; $("t-error").textContent="";
+  cierreSel=null; $("t-cierre-def").className="chip"; $("t-cierre-prov").className="chip";
   $("t-ini").value=ahoraHHMM(); $("t-fin").value="";
   abrir("m-trabajo");
 }
@@ -496,27 +531,48 @@ function diffMin(ini, fin){
   if(m<0) m+=24*60; return m;
 }
 function guardarTrabajo(){
-  var eq=$("t-eq").value, desc=$("t-desc").value.replace(/^\s+|\s+$/g,""), quedo=$("t-quedo").value.replace(/^\s+|\s+$/g,""), ini=$("t-ini").value, fin=$("t-fin").value;
+  var eq=$("t-eq").value, pasaba=val("t-pasaba"), desc=val("t-desc"), quedo=val("t-quedo"),
+      rep=val("t-rep"), ini=$("t-ini").value, fin=$("t-fin").value;
   if(!eq){ $("t-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
+  if(!pasaba){ $("t-error").textContent="Escrib&iacute; qu&eacute; pasaba."; return; }
   if(!desc){ $("t-error").textContent="Escrib&iacute; qu&eacute; hiciste."; return; }
   if(!quedo){ $("t-error").textContent="Escrib&iacute; c&oacute;mo qued&oacute;."; return; }
+  if(!cierreSel){ $("t-error").textContent="Eleg&iacute; el tipo de cierre."; return; }
   if(!ini||!fin){ $("t-error").textContent="Cargá hora de inicio y fin."; return; }
-  registrar("trabajo", { equipo:eq, que_hiciste:desc, como_quedo:quedo, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin) });
+  registrar("trabajo", { equipo:eq, que_pasaba:pasaba, que_hiciste:desc, como_quedo:quedo,
+    repuesto:rep, tipo_cierre:cierreSel, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin) });
   cerrarModales(); toast("✓ Trabajo guardado","ok");
 }
 
-/* FALLA */
+/* FALLA (solo reporte → backlog) */
+var fEstadoSel=null, fUrgSel=null;
+function selEstadoFalla(v){
+  fEstadoSel=v;
+  $("f-est-anda").className="chip"+(v==="anda"?" on":"");
+  $("f-est-noanda").className="chip"+(v==="fuera"?" on":"");
+  $("f-est-rep").className="chip"+(v==="repuesto"?" on":"");
+}
+function selUrgFalla(v){
+  fUrgSel=v;
+  $("f-urg-esp").className="chip"+(v==="puede_esperar"?" on":"");
+  $("f-urg-urg").className="chip"+(v==="urgente"?" on":"");
+}
 function abrirFalla(){
   llenarSelect($("f-eq"), CONFIG.equipos);
-  $("f-vio").value=""; $("f-hizo").value=""; $("f-quedo").value=""; $("f-error").textContent="";
+  $("f-vio").value=""; $("f-error").textContent="";
+  fEstadoSel=null; fUrgSel=null;
+  $("f-est-anda").className="chip"; $("f-est-noanda").className="chip"; $("f-est-rep").className="chip";
+  $("f-urg-esp").className="chip"; $("f-urg-urg").className="chip";
   abrir("m-falla");
 }
 function guardarFalla(){
-  var eq=$("f-eq").value, vio=val("f-vio"), hizo=val("f-hizo"), quedo=val("f-quedo");
+  var eq=$("f-eq").value, vio=val("f-vio");
   if(!eq){ $("f-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
-  if(!vio||!hizo||!quedo){ $("f-error").textContent="Los tres campos son obligatorios."; return; }
-  registrar("falla", { equipo:eq, que_se_vio:vio, que_se_hizo:hizo, como_quedo:quedo });
-  cerrarModales(); toast("✓ Falla registrada","ok");
+  if(!vio){ $("f-error").textContent="Escrib&iacute; qu&eacute; viste mal."; return; }
+  if(!fEstadoSel){ $("f-error").textContent="Eleg&iacute; c&oacute;mo est&aacute;."; return; }
+  if(!fUrgSel){ $("f-error").textContent="Eleg&iacute; si urge."; return; }
+  registrar("falla", { equipo:eq, que_viste:vio, estado:fEstadoSel, urgencia:fUrgSel });
+  cerrarModales(); toast("✓ Falla registrada en el backlog","ok");
 }
 function val(id){ return $(id).value.replace(/^\s+|\s+$/g,""); }
 
@@ -541,7 +597,7 @@ function tempCtrl(k, etiqueta){
   var h="<div class='temp-row'>";
   h+="<span class='tl'>"+etiqueta+"</span>";
   h+="<button class='temp-sign neg' id='"+idTsign(k)+"' onclick='toggleSigno(\""+k+"\")'>\u2212</button>";
-  h+="<input class='temp-mag' type='number' inputmode='decimal' id='"+idTmag(k)+"' value='"+Math.abs(CONFIG.TEMP_DEFAULT)+"' oninput='actualizarProgreso()'>";
+  h+="<input class='temp-mag' type='number' inputmode='decimal' maxlength='3' id='"+idTmag(k)+"' value='"+Math.abs(CONFIG.TEMP_DEFAULT)+"' oninput='if(this.value.length>3)this.value=this.value.slice(0,3);actualizarProgreso();'>";
   h+="<span class='temp-unit'>\u00b0C</span>";
   h+="</div>";
   return h;

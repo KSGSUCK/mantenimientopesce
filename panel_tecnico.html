@@ -116,6 +116,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .alerta-fase{background:rgba(255,77,94,.1);border:1px solid rgba(255,77,94,.4);border-radius:9px;
   padding:7px 10px;margin-top:8px;font-size:12px;color:#FF8A96}
 .ronda-footer{position:sticky;bottom:0;background:#121D29;padding:12px 0 calc(16px + env(safe-area-inset-bottom));margin-top:6px;border-top:1px solid #24364A}
+.sec-titulo{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#4FD8E0;font-weight:700;
+  margin:16px 0 8px;padding:0 2px;border-left:3px solid #4FD8E0;padding-left:10px;}
+.sec-titulo:first-child{margin-top:4px;}
+/* batería */
+.bat-opts{display:flex;gap:7px;margin-top:6px;}
+.bat-opt{flex:1;border:1.5px solid #24364A;border-radius:11px;padding:12px 4px;text-align:center;
+  font-size:13px;font-weight:600;color:#7E93A8;background:#16222F;}
+.bat-opt.sel-cargado{border-color:#46D68C;color:#46D68C;background:rgba(70,214,140,.1);}
+.bat-opt.sel-cargandose{border-color:#F2B33D;color:#F2B33D;background:rgba(242,179,61,.1);}
+.bat-opt.sel-puesto{border-color:#7E93A8;color:#E8F0F6;background:rgba(126,147,168,.12);}
+/* compresor en fila (etiqueta + R/D/T) */
+.comp-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.comp-row .cl{flex:0 0 92px;font-size:13px;font-weight:600;color:#C9D6E0;}
+.comp-row .cv{flex:1;display:flex;gap:6px;}
+.comp-row .cv .vbox{flex:1;margin:0;}
+.comp-row .cv .vbox label{font-size:10px;margin-bottom:2px;}
+.comp-row .cv .vbox input{font-size:18px;padding:11px 2px;}
+/* temperaturas con signo */
+.temps-zona{margin-top:6px;padding-top:10px;border-top:1px dashed #24364A;}
+.temp-row{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.temp-row .tl{flex:0 0 110px;font-size:13px;font-weight:600;color:#9FE3EA;}
+.temp-sign{width:46px;height:48px;border-radius:11px;border:1.5px solid #24364A;font-size:24px;font-weight:800;
+  background:#16222F;color:#7E93A8;}
+.temp-sign.neg{border-color:#4FD8E0;color:#4FD8E0;background:rgba(79,216,224,.12);}
+.temp-sign.pos{border-color:#F2B33D;color:#F2B33D;background:rgba(242,179,61,.12);}
+.temp-mag{flex:1;background:#16222F;border:1.5px solid #24364A;border-radius:11px;color:#E8F0F6;
+  font-size:21px;font-weight:700;padding:12px 8px;text-align:center;-webkit-appearance:none;appearance:none;
+  font-family:ui-monospace,Menlo,monospace;}
+.temp-mag:focus{border-color:#4FD8E0;outline:none;}
+.temp-unit{flex:0 0 auto;color:#7E93A8;font-size:15px;font-weight:700;}
+/* amperaje batería */
+.bat-amp{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.bat-amp label{flex:0 0 auto;font-size:12px;color:#7E93A8;}
+.bat-amp input{flex:1;background:#16222F;border:1.5px solid #24364A;border-radius:10px;color:#E8F0F6;
+  font-size:17px;padding:10px;text-align:center;font-family:ui-monospace,Menlo,monospace;-webkit-appearance:none;appearance:none;}
 
 #toast{display:none;position:fixed;z-index:40;left:18px;right:18px;bottom:calc(24px + env(safe-area-inset-bottom));
   background:#1D2E3F;border:1px solid #2C5B66;color:#E8F0F6;border-radius:14px;padding:14px 16px;font-size:14.5px;
@@ -283,21 +318,36 @@ var CONFIG = {
     "Sector Cajas","Velez","Administración","Otros"
   ],
 
-  /* 4) Puntos de la ronda (una lectura por punto) */
-  puntosRonda: [
-    "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
-    "Cámara 1","Cámara 2","Túnel 1","Túnel 2","Cámara 3","Cámara 4","Máquina de hielo"
-  ],
-
-  /* 5) Temperatura: arranca con este valor negativo ya puesto */
+  /* 4) Temperatura: arranca con este valor negativo ya puesto */
   TEMP_DEFAULT: -18,
   TEMP_MIN: -30, TEMP_MAX: 5,
 
-  /* 6) Desbalance de fases (igual que tu panel): salta si la diferencia
-        entre la fase más alta y la más baja supera 30%, con piso de 8 A. */
+  /* 5) Desbalance de fases: salta si diferencia > 30%, piso 8 A */
   UMBRAL_DESBALANCE: 0.30,
   MIN_AMP: 8,
-  FASES: ["R","D","T"]
+  FASES: ["R","D","T"],
+
+  /* 6) Secciones de la ronda. Tipos:
+       "cont"    → cada contenedor: R/D/T + 1 temp
+       "zona"    → cámara/túnel: compresores (solo amperaje R/D/T) + 2 temps (entrada/fondo)
+       "bateria" → robots: selector de estado + amperaje opcional
+       Los números de "comps" son los de la planilla (numeración corrida 1..16).
+  */
+  seccionesRonda: [
+    { titulo: "Contenedores", tipo: "cont", puntos: [
+      "Contenedor 1","Contenedor 2","Contenedor 3",
+      "Contenedor 4","Contenedor 5","Contenedor 6"
+    ]},
+    { titulo: "Cámara 1", tipo: "zona", comps: [1,2,3,4] },
+    { titulo: "Túnel 2",  tipo: "zona", comps: [5,6] },
+    { titulo: "Cámara 2", tipo: "zona", comps: [7,8,9] },
+    { titulo: "Túnel 1",  tipo: "zona", comps: [10,11] },
+    { titulo: "Cámara 3", tipo: "zona", comps: [12,13,14] },
+    { titulo: "Cámara 4", tipo: "zona", comps: [15,16] },
+    { titulo: "Robots (CUC)", tipo: "bateria", puntos: [
+      "Batería 1","Batería 2","Batería 3","Batería 4"
+    ]}
+  ]
 };
 
 /* ---------------- estado ---------------- */
@@ -470,66 +520,231 @@ function guardarFalla(){
 }
 function val(id){ return $(id).value.replace(/^\s+|\s+$/g,""); }
 
-/* RONDA */
+/* ===================== RONDA ===================== */
+/* ids */
+function idCard(si,pi){ return "pt-"+si+"-"+pi; }      // contenedor / batería card
+function idZcard(si){ return "zona-"+si; }              // zona card
+function idAmp(si,pi,f){ return "a"+si+"_"+pi+"_"+f; }  // amperaje (contenedor o compresor)
+function idAlert(si,pi){ return "al"+si+"_"+pi; }
+function idTmag(k){ return "tm_"+k; }                   // magnitud de temp
+function idTsign(k){ return "ts_"+k; }                  // botón signo de temp
+function idBat(si,pi){ return "b"+si+"_"+pi; }
+function idBatAmp(si,pi){ return "ba"+si+"_"+pi; }
+
+/* estado */
+var tempSign={};   // key -> "-" | "+"
+var batSel={};     // "si-pi" -> estado
+
+/* genera un control de temperatura con botón de signo (default −) */
+function tempCtrl(k, etiqueta){
+  tempSign[k]="-";
+  var h="<div class='temp-row'>";
+  h+="<span class='tl'>"+etiqueta+"</span>";
+  h+="<button class='temp-sign neg' id='"+idTsign(k)+"' onclick='toggleSigno(\""+k+"\")'>\u2212</button>";
+  h+="<input class='temp-mag' type='number' inputmode='decimal' id='"+idTmag(k)+"' value='"+Math.abs(CONFIG.TEMP_DEFAULT)+"' oninput='actualizarProgreso()'>";
+  h+="<span class='temp-unit'>\u00b0C</span>";
+  h+="</div>";
+  return h;
+}
+function toggleSigno(k){
+  tempSign[k] = (tempSign[k]==="-") ? "+" : "-";
+  var b=$(idTsign(k));
+  if(tempSign[k]==="-"){ b.className="temp-sign neg"; b.textContent="\u2212"; }
+  else { b.className="temp-sign pos"; b.textContent="+"; }
+}
+function getTemp(k){
+  var el=$(idTmag(k)); if(!el) return null;
+  var v=el.value; if(v==="") return null;
+  var n=Math.abs(parseFloat(v));
+  return (tempSign[k]==="-"? -n : n);
+}
+
+function totalPuntos(){
+  var n=0, s, si;
+  for(si=0;si<CONFIG.seccionesRonda.length;si++){
+    s=CONFIG.seccionesRonda[si];
+    if(s.tipo==="zona") n+=1;                 // cada zona cuenta como 1 (sus comps + temps)
+    else n+=s.puntos.length;
+  }
+  return n;
+}
+
 function abrirRonda(){
-  var h="", i, j, p;
-  for(i=0;i<CONFIG.puntosRonda.length;i++){
-    p=CONFIG.puntosRonda[i];
-    h+="<div class='punto' id='pt-"+i+"'><div class='pn'>"+p+"<span class='ok' id='ok-"+i+"'></span></div><div class='vars'>";
-    for(j=0;j<3;j++) h+="<div class='vbox'><label>"+CONFIG.FASES[j]+"</label><input class='mono' type='number' inputmode='decimal' id='f"+i+"-"+j+"' oninput='chequear("+i+")' placeholder='0'></div>";
-    h+="<div class='vbox'><label>Temp</label><input class='mono' type='number' inputmode='decimal' id='f"+i+"-t' value='"+CONFIG.TEMP_DEFAULT+"' oninput='chequear("+i+")'></div>";
-    h+="</div><div id='al-"+i+"'></div></div>";
+  var h="", si, pi, sec, j, c, k;
+  for(si=0;si<CONFIG.seccionesRonda.length;si++){
+    sec=CONFIG.seccionesRonda[si];
+    h+="<div class='sec-titulo'>"+sec.titulo+"</div>";
+
+    if(sec.tipo==="cont"){
+      for(pi=0;pi<sec.puntos.length;pi++){
+        h+="<div class='punto' id='"+idCard(si,pi)+"'>";
+        h+="<div class='pn'>"+sec.puntos[pi]+"<span class='ok' id='ok-"+si+"-"+pi+"'></span></div>";
+        h+="<div class='vars'>";
+        for(j=0;j<3;j++) h+="<div class='vbox'><label>"+CONFIG.FASES[j]+"</label><input class='mono' type='number' inputmode='decimal' id='"+idAmp(si,pi,j)+"' oninput='chkCont("+si+","+pi+")' placeholder='0'></div>";
+        h+="</div><div id='"+idAlert(si,pi)+"'></div>";
+        k=si+"_"+pi+"_t";
+        h+=tempCtrl(k,"Temperatura");
+        h+="</div>";
+      }
+    }
+
+    else if(sec.tipo==="zona"){
+      h+="<div class='punto' id='"+idZcard(si)+"'>";
+      h+="<div class='pn'>Compresores <span class='ok' id='okz-"+si+"'></span></div>";
+      for(pi=0;pi<sec.comps.length;pi++){
+        c=sec.comps[pi];
+        h+="<div class='comp-row'><span class='cl'>Compresor "+c+"</span><div class='cv'>";
+        for(j=0;j<3;j++) h+="<div class='vbox'><label>"+CONFIG.FASES[j]+"</label><input class='mono' type='number' inputmode='decimal' id='"+idAmp(si,pi,j)+"' oninput='chkZona("+si+")' placeholder='0'></div>";
+        h+="</div></div><div id='"+idAlert(si,pi)+"'></div>";
+      }
+      h+="<div class='temps-zona'>";
+      h+=tempCtrl(si+"_te","Temp. entrada");
+      h+=tempCtrl(si+"_tf","Temp. fondo");
+      h+="</div>";
+      h+="</div>";
+    }
+
+    else if(sec.tipo==="bateria"){
+      for(pi=0;pi<sec.puntos.length;pi++){
+        h+="<div class='punto' id='"+idCard(si,pi)+"'>";
+        h+="<div class='pn'>"+sec.puntos[pi]+"<span class='ok' id='ok-"+si+"-"+pi+"'></span></div>";
+        h+="<div class='bat-opts'>";
+        h+="<div class='bat-opt' id='"+idBat(si,pi)+"-c' onclick='selBat("+si+","+pi+",\"cargado\")'>Cargado</div>";
+        h+="<div class='bat-opt' id='"+idBat(si,pi)+"-g' onclick='selBat("+si+","+pi+",\"cargandose\")'>Carg\u00e1ndose</div>";
+        h+="<div class='bat-opt' id='"+idBat(si,pi)+"-p' onclick='selBat("+si+","+pi+",\"puesto\")'>Puesto</div>";
+        h+="</div>";
+        h+="<div class='bat-amp'><label>Amperaje (opcional)</label><input class='mono' type='number' inputmode='decimal' id='"+idBatAmp(si,pi)+"' placeholder='\u2014'></div>";
+        h+="</div>";
+      }
+    }
   }
   $("ronda-puntos").innerHTML=h;
   $("ronda-obs").value="";
-  $("ronda-sub").textContent="Toc&aacute; y carg&aacute;. La temperatura ya viene en "+CONFIG.TEMP_DEFAULT+"\u00b0, ajust&aacute; si hace falta.";
+  $("ronda-sub").textContent="La temperatura arranca en negativo. Si alguna es positiva, toc\u00e1 el bot\u00f3n \u2212/+.";
   $("ronda-error").textContent="";
+  batSel={};
   actualizarProgreso();
   abrir("m-ronda");
 }
-function numero(id){ var v=$(id).value; return v===""?null:parseFloat(v); }
-function chequear(i){
-  var r=numero("f"+i+"-0"), d=numero("f"+i+"-1"), t=numero("f"+i+"-2"), temp=numero("f"+i+"-t");
-  // temp fuera de rango
-  var inT=$("f"+i+"-t"); inT.className="mono"+((temp!==null && (temp<CONFIG.TEMP_MIN||temp>CONFIG.TEMP_MAX))?" fuera":"");
-  // desbalance
-  var al=$("al-"+i), fueraFase=false;
+
+function numero(id){ var el=$(id); if(!el) return null; var v=el.value; return v===""?null:parseFloat(v); }
+
+/* desbalance sobre un set R/D/T; devuelve pct o 0; pinta alerta e inputs */
+function evalDesbalance(si,pi){
+  var r=numero(idAmp(si,pi,0)), d=numero(idAmp(si,pi,1)), t=numero(idAmp(si,pi,2));
+  var al=$(idAlert(si,pi)), fuera=false, pct=0;
   if(r!==null && d!==null && t!==null){
-    var max=Math.max(r,d,t), min=Math.min(r,d,t);
-    if(max>=CONFIG.MIN_AMP && max>0 && (max-min)/max>CONFIG.UMBRAL_DESBALANCE){
-      fueraFase=true;
-      var pct=Math.round((max-min)/max*100);
-      al.innerHTML="<div class='alerta-fase'>⚠ Desbalance "+pct+"% entre fases — revisar conexi&oacute;n / carga</div>";
-    } else al.innerHTML="";
-  } else al.innerHTML="";
-  var j; for(j=0;j<3;j++){ var inp=$("f"+i+"-"+j); inp.className="mono"+(fueraFase?" fuera":""); }
-  // completo
-  var comp=(r!==null && d!==null && t!==null && temp!==null);
-  $("ok-"+i).textContent=comp?"✓":"";
-  $("pt-"+i).className="punto"+(comp?" completo":"");
+    var mx=Math.max(r,d,t), mn=Math.min(r,d,t);
+    if(mx>=CONFIG.MIN_AMP && mx>0 && (mx-mn)/mx>CONFIG.UMBRAL_DESBALANCE){
+      fuera=true; pct=Math.round((mx-mn)/mx*100);
+      if(al) al.innerHTML="<div class='alerta-fase'>\u26a0 Desbalance "+pct+"% \u2014 revisar</div>";
+    } else if(al) al.innerHTML="";
+  } else if(al) al.innerHTML="";
+  var j; for(j=0;j<3;j++){ var inp=$(idAmp(si,pi,j)); if(inp) inp.className="mono"+(fuera?" fuera":""); }
+  return { r:r, d:d, t:t, completo:(r!==null&&d!==null&&t!==null), desb:pct };
+}
+
+function chkCont(si,pi){
+  var e=evalDesbalance(si,pi);
+  var k=si+"_"+pi+"_t", temp=getTemp(k);
+  var comp=(e.completo && temp!==null);
+  $("ok-"+si+"-"+pi).textContent=comp?"\u2713":"";
+  $(idCard(si,pi)).className="punto"+(comp?" completo":"");
   actualizarProgreso();
 }
+
+function chkZona(si){
+  var sec=CONFIG.seccionesRonda[si], pi, todos=true;
+  for(pi=0;pi<sec.comps.length;pi++){ var e=evalDesbalance(si,pi); if(!e.completo) todos=false; }
+  var te=getTemp(si+"_te"), tf=getTemp(si+"_tf");
+  var comp=(todos && te!==null && tf!==null);
+  $("okz-"+si).textContent=comp?"\u2713":"";
+  $(idZcard(si)).className="punto"+(comp?" completo":"");
+  actualizarProgreso();
+}
+
+function selBat(si,pi,estado){
+  batSel[si+"-"+pi]=estado;
+  var mapa={cargado:"-c",cargandose:"-g",puesto:"-p"};
+  var clases={cargado:"sel-cargado",cargandose:"sel-cargandose",puesto:"sel-puesto"};
+  var sfx, el;
+  for(sfx in mapa){ el=$(idBat(si,pi)+mapa[sfx]); if(el) el.className="bat-opt"+(sfx===estado?" "+clases[sfx]:""); }
+  $("ok-"+si+"-"+pi).textContent="\u2713";
+  $(idCard(si,pi)).className="punto completo";
+  actualizarProgreso();
+}
+
+function zonaCompleta(si){
+  var sec=CONFIG.seccionesRonda[si], pi;
+  for(pi=0;pi<sec.comps.length;pi++){
+    if(numero(idAmp(si,pi,0))===null||numero(idAmp(si,pi,1))===null||numero(idAmp(si,pi,2))===null) return false;
+  }
+  return (getTemp(si+"_te")!==null && getTemp(si+"_tf")!==null);
+}
+
 function actualizarProgreso(){
-  var total=CONFIG.puntosRonda.length, hechos=0, i;
-  for(i=0;i<total;i++){ if(numero("f"+i+"-0")!==null && numero("f"+i+"-1")!==null && numero("f"+i+"-2")!==null && numero("f"+i+"-t")!==null) hechos++; }
+  var total=totalPuntos(), hechos=0, si, pi, sec, k;
+  for(si=0;si<CONFIG.seccionesRonda.length;si++){
+    sec=CONFIG.seccionesRonda[si];
+    if(sec.tipo==="cont"){
+      for(pi=0;pi<sec.puntos.length;pi++){
+        k=si+"_"+pi+"_t";
+        if(numero(idAmp(si,pi,0))!==null&&numero(idAmp(si,pi,1))!==null&&numero(idAmp(si,pi,2))!==null&&getTemp(k)!==null) hechos++;
+      }
+    } else if(sec.tipo==="zona"){
+      if(zonaCompleta(si)) hechos++;
+    } else if(sec.tipo==="bateria"){
+      for(pi=0;pi<sec.puntos.length;pi++){ if(batSel[si+"-"+pi]) hechos++; }
+    }
+  }
   $("ronda-barra").style.width=Math.round(hechos/total*100)+"%";
   $("ronda-progreso").textContent=hechos+" de "+total+" puntos";
 }
+
 function guardarRonda(){
-  var puntos=[], i, parciales=0;
-  for(i=0;i<CONFIG.puntosRonda.length;i++){
-    var r=numero("f"+i+"-0"), d=numero("f"+i+"-1"), t=numero("f"+i+"-2"), temp=numero("f"+i+"-t");
-    if(r===null && d===null && t===null) continue; // punto sin cargar, se saltea
-    if(r===null || d===null || t===null){ parciales++; continue; }
-    var max=Math.max(r,d,t), min=Math.min(r,d,t);
-    var desb = (max>=CONFIG.MIN_AMP && max>0 && (max-min)/max>CONFIG.UMBRAL_DESBALANCE) ? Math.round((max-min)/max*100) : 0;
-    puntos.push({ punto:CONFIG.puntosRonda[i], R:r, D:d, T:t, temp:temp, desbalance_pct:desb });
+  var puntos=[], si, pi, sec, c, k, r, d, t, mx, mn, desb, te, tf, temp, est, amp;
+  for(si=0;si<CONFIG.seccionesRonda.length;si++){
+    sec=CONFIG.seccionesRonda[si];
+
+    if(sec.tipo==="cont"){
+      for(pi=0;pi<sec.puntos.length;pi++){
+        r=numero(idAmp(si,pi,0)); d=numero(idAmp(si,pi,1)); t=numero(idAmp(si,pi,2));
+        k=si+"_"+pi+"_t"; temp=getTemp(k);
+        if(r===null && d===null && t===null && temp===null) continue;
+        mx=Math.max(r||0,d||0,t||0); mn=Math.min(r||0,d||0,t||0);
+        desb=(mx>=CONFIG.MIN_AMP && mx>0 && (mx-mn)/mx>CONFIG.UMBRAL_DESBALANCE)?Math.round((mx-mn)/mx*100):0;
+        puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"contenedor", R:r, D:d, T:t, desbalance_pct:desb, temp_entrada:temp, temp_fondo:null });
+      }
+    }
+
+    else if(sec.tipo==="zona"){
+      te=getTemp(si+"_te"); tf=getTemp(si+"_tf");
+      for(pi=0;pi<sec.comps.length;pi++){
+        c=sec.comps[pi];
+        r=numero(idAmp(si,pi,0)); d=numero(idAmp(si,pi,1)); t=numero(idAmp(si,pi,2));
+        if(r===null && d===null && t===null) continue;
+        mx=Math.max(r||0,d||0,t||0); mn=Math.min(r||0,d||0,t||0);
+        desb=(mx>=CONFIG.MIN_AMP && mx>0 && (mx-mn)/mx>CONFIG.UMBRAL_DESBALANCE)?Math.round((mx-mn)/mx*100):0;
+        puntos.push({ seccion:sec.titulo, punto:"Compresor "+c, tipo:"compresor", num:c, R:r, D:d, T:t, desbalance_pct:desb });
+      }
+      if(te!==null || tf!==null){
+        puntos.push({ seccion:sec.titulo, punto:sec.titulo+" - Temperatura", tipo:"temp_zona", temp_entrada:te, temp_fondo:tf });
+      }
+    }
+
+    else if(sec.tipo==="bateria"){
+      for(pi=0;pi<sec.puntos.length;pi++){
+        est=batSel[si+"-"+pi]; amp=numero(idBatAmp(si,pi));
+        if(!est && amp===null) continue;
+        puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"bateria", estado:est||"", amp_bateria:amp });
+      }
+    }
   }
-  if(puntos.length===0){ $("ronda-error").textContent="Carg&aacute; al menos un punto completo (3 fases)."; return; }
-  if(parciales>0){ $("ronda-error").textContent="Hay "+parciales+" punto(s) con fases a medias. Complet&aacute; las 3 o dej&aacute;lo vac&iacute;o."; return; }
+  if(puntos.length===0){ $("ronda-error").textContent="Carg\u00e1 al menos un punto."; return; }
   var obs=$("ronda-obs").value.replace(/^\s+|\s+$/g,"");
   registrar("ronda", { horario:ahoraHHMM(), observacion:obs, puntos:puntos });
-  cerrarModales(); toast("✓ Ronda guardada ("+puntos.length+" puntos)","ok");
+  batSel={}; tempSign={};
+  cerrarModales(); toast("\u2713 Ronda guardada","ok");
 }
 
 /* ---------------- init ---------------- */

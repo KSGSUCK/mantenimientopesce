@@ -69,6 +69,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .item-hoy .d{margin-top:2px;line-height:1.35}
 .item-hoy .m{color:#7E93A8;font-size:12px;margin-top:2px}
 .vacio{color:#56697C;font-size:14px;padding:4px 2px}
+.btn-parte{width:100%;margin-top:14px;border:none;border-radius:14px;padding:17px;
+  background:#46D68C;color:#06121a;font-size:16px;font-weight:800;letter-spacing:.2px}
+.btn-parte:active{opacity:.85}
 
 /* Modales */
 .modal-fondo{display:none;position:fixed;z-index:20;inset:0;background:rgba(8,13,19,.78)}
@@ -195,7 +198,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <button class="accion" onclick="abrirTrabajo()">
       <span class="ic">🛠</span><span class="tx"><b>Registrar trabajo</b><small>Qu&eacute; hiciste, con hora de inicio y fin</small></span></button>
     <button class="accion falla" onclick="abrirFalla()">
-      <span class="ic">⚠️</span><span class="tx"><b>Reportar una falla</b><small>Qu&eacute; se vio, qu&eacute; se hizo y c&oacute;mo qued&oacute;</small></span></button>
+      <span class="ic">⚠️</span><span class="tx"><b>Reportar una falla</b><small>Algo que viste mal</small></span></button>
     <button class="accion ronda" onclick="abrirRonda()">
       <span class="ic">📋</span><span class="tx"><b>Hacer la ronda</b><small>Amperaje y temperatura, r&aacute;pido</small></span></button>
   </div>
@@ -208,6 +211,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
       <div class="box"><b id="h-ronda">0</b><small>Rondas</small></div>
     </div>
     <div class="lista-hoy" id="lista-hoy"></div>
+    <button class="btn-parte" onclick="enviarParte()">📤 Enviar parte de turno</button>
   </div>
 </div>
 
@@ -481,6 +485,46 @@ function salir(){
   SES.nombre=null;
   $("scr-home").className="pantalla"; $("scr-login").className="pantalla visible";
   volverANombres();
+}
+
+/* ---------------- PARTE DE TURNO → WhatsApp ---------------- */
+var PARTE_KEY="pmos_f1_ultimoparte"; // guarda, por técnico, la fecha del último parte enviado
+
+function ultimoParte(nombre){
+  var m; try{ m=JSON.parse(localStorage.getItem(PARTE_KEY)||"{}"); }catch(e){ m={}; }
+  return m[nombre] || null;
+}
+function marcarParteEnviado(nombre){
+  var m; try{ m=JSON.parse(localStorage.getItem(PARTE_KEY)||"{}"); }catch(e){ m={}; }
+  m[nombre]=new Date().toISOString();
+  localStorage.setItem(PARTE_KEY, JSON.stringify(m));
+}
+
+function enviarParte(){
+  var log=leer(LOG_KEY), desde=ultimoParte(SES.nombre), mios=[], i;
+  for(i=0;i<log.length;i++){
+    var r=log[i];
+    if(r.tecnico!==SES.nombre) continue;
+    if(r.tipo!=="trabajo") continue; // el parte diario es SOLO trabajos
+    if(desde && r.fecha<=desde) continue; // ya estaba en un parte anterior
+    mios.push(r);
+  }
+  if(mios.length===0){ toast("No hay trabajos nuevos para el parte","err"); return; }
+
+  var txt = "📋 *PARTE DE TURNO*\n" + SES.nombre + " · " + fechaLarga() + "\n\n";
+  for(i=0;i<mios.length;i++){ var d=mios[i].datos;
+    txt += "• " + d.equipo + ": " + d.que_pasaba + " — *" + (d.tipo_cierre==="definitivo"?"Definitivo":"Provisorio") + "*\n";
+  }
+  txt += "\n— PMOS Mantenimiento";
+
+  marcarParteEnviado(SES.nombre);
+  window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");
+}
+
+function fechaLarga(){
+  var d=new Date();
+  var dias=["Dom","Lun","Mar","Mi\u00e9","Jue","Vie","S\u00e1b"];
+  return dias[d.getDay()]+" "+dosDig(d.getDate())+"/"+dosDig(d.getMonth()+1)+" "+dosDig(d.getHours())+":"+dosDig(d.getMinutes());
 }
 
 /* ---------------- resumen de hoy ---------------- */

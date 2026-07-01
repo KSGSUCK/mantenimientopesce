@@ -606,9 +606,27 @@ function ordenarTareas(a,b){
   return (b.dias_abierta||0)-(a.dias_abierta||0);
 }
 
+var tareasMias={}; // id -> tarea (para precargar el cierre)
+var _ultDisp=[], _ultMias=[]; // última respuesta del servidor, para re-render sin señal
+function renderTareasLocal(){ renderTareas(_ultDisp, _ultMias); }
 function renderTareas(disp, mias){
+  _ultDisp=disp; _ultMias=mias;
+  // filtrar las que ya cerré localmente (pendientes de enviar)
+  var cl=cierresLocales(), i;
+  var miasV=[];
+  for(i=0;i<mias.length;i++){
+    if(cl[mias[i].id]) continue;
+    miasV.push(mias[i]);
+  }
+  // si el servidor ya no la lista, el cierre llegó: limpiar la marca local
+  var idsServidor={};
+  for(i=0;i<mias.length;i++) idsServidor[mias[i].id]=true;
+  var k; for(k in cl){ if(!idsServidor[k]) limpiarCierreLocal(k); }
+  mias=miasV;
   disp.sort(ordenarTareas); mias.sort(ordenarTareas);
-  var i,t,h;
+  var t,h;
+  tareasMias={};
+  for(i=0;i<mias.length;i++){ tareasMias[mias[i].id]=mias[i]; }
 
   // mis tareas
   if(mias.length===0){ $("sec-mias").style.display="none"; }
@@ -621,7 +639,7 @@ function renderTareas(disp, mias){
       h+="<div class='tarea-top'><span class='tarea-sector'>"+t.sector+"</span>"+chipEdad(t)+"</div>";
       h+="<div class='tarea-desc'>"+t.desc+"</div>";
       h+="<div class='fila-cierre'>";
-      h+="<button class='btn-hecha' onclick='cerrarTarea(\""+t.id+"\",\"hecha\",\"\")'>\u2713 La termin&eacute;</button>";
+      h+="<button class='btn-hecha' onclick='cerrarConTrabajo(\""+t.id+"\")'>\u2713 Cerrar tarea</button>";
       h+="<button class='btn-repuesto' onclick='mostrarRep(\""+t.id+"\")'>📦 Falta repuesto</button>";
       h+="</div>";
       h+="<div class='rep-inline' id='rep-"+t.id+"'><input type='text' id='repin-"+t.id+"' placeholder='&iquest;Qu&eacute; repuesto falta?'>";
@@ -641,7 +659,7 @@ function renderTareas(disp, mias){
       h+="<div class='tarea-card"+(t.prioridad==="Alta"?" pri-alta":"")+((t.dias_restantes!==null&&t.dias_restantes<0)?" vencida":"")+"'>";
       h+="<div class='tarea-top'><span class='tarea-sector'>"+t.sector+"</span>"+chipEdad(t)+"</div>";
       h+="<div class='tarea-desc'>"+t.desc+"</div>";
-      h+="<div class='tarea-meta'>"+(t.prioridad==="Alta"?"🔴 Alta · ":"")+"cargada por "+t.de+(t.para&&t.para!=="Todos"?" · para "+t.para:"")+"</div>";
+      if(t.prioridad==="Alta") h+="<div class='tarea-meta'>🔴 Prioridad alta</div>";
       h+="<button class='btn-tomar' onclick='tomarTarea(\""+t.id+"\")'>Tomar esta tarea</button>";
       h+="</div>";
     }
@@ -650,11 +668,39 @@ function renderTareas(disp, mias){
 }
 
 function tomarTarea(id){
+  if(!navigator.onLine){
+    toast("Sin se\u00f1al \u2014 para tomar una tarea necesit\u00e1s se\u00f1al, as\u00ed queda reservada para vos","err");
+    return;
+  }
   postTarea({ tipo:"tomarTarea", id:id, tecnico:SES.nombre }, function(resp){
     if(resp==="TOMADA"){ toast("Ya la tom\u00f3 otro compa\u00f1ero","err"); }
     else toast("\u2713 Tarea tuya. Est\u00e1 en Mis tareas","ok");
     consultarTareas();
   });
+}
+
+/* ---- cierres pendientes de enviar (offline) ---- */
+var CERR_KEY="pmos_cierres_locales";
+function cierresLocales(){ try{ return JSON.parse(localStorage.getItem(CERR_KEY)||"{}"); }catch(e){ return {}; } }
+function marcarCierreLocal(id){ var m=cierresLocales(); m[id]=true; localStorage.setItem(CERR_KEY, JSON.stringify(m)); }
+function limpiarCierreLocal(id){ var m=cierresLocales(); delete m[id]; localStorage.setItem(CERR_KEY, JSON.stringify(m)); }
+
+/* cierra la tarea con o sin señal: online directo, offline a la cola */
+function cerrarTareaSegura(id, resultado, repTxt, cb){
+  if(navigator.onLine && CONFIG.SHEET_URL){
+    postTarea({ tipo:"cerrarTarea", id:id, tecnico:SES.nombre, resultado:resultado, repuesto:repTxt }, function(){
+      if(cb) cb();
+    });
+  } else {
+    // a la cola offline: mismo formato que doPost espera (campos en la raíz)
+    var rec={ tipo:"cerrarTarea", id:id, tecnico:SES.nombre, resultado:resultado, repuesto:repTxt,
+              fecha:new Date().toISOString(), enviado:false,
+              uid:Date.now().toString(36)+Math.random().toString(36).slice(2,6) };
+    var ob=leer(OUTBOX_KEY); ob.push(rec); escribir(OUTBOX_KEY, ob);
+    marcarCierreLocal(id);
+    marcarBarra("sin-senal","Sin se\u00f1al \u2014 el cierre se enviar\u00e1 solo al reconectar");
+    if(cb) cb();
+  }
 }
 function mostrarRep(id){ var el=$("rep-"+id); el.style.display = (el.style.display==="block")?"none":"block"; }
 function confirmarRep(id){
@@ -663,10 +709,28 @@ function confirmarRep(id){
   cerrarTarea(id,"repuesto",txt);
 }
 function cerrarTarea(id, resultado, repTxt){
-  postTarea({ tipo:"cerrarTarea", id:id, tecnico:SES.nombre, resultado:resultado, repuesto:repTxt }, function(){
+  cerrarTareaSegura(id, resultado, repTxt, function(){
     toast(resultado==="hecha"?"\u2713 Tarea cerrada":"📦 Qued\u00f3 en espera de repuestos","ok");
     consultarTareas();
+    renderTareasLocal();
   });
+}
+
+/* cerrar tarea con el formulario completo de trabajo */
+var tareaEnCierre=null; // id de la tarea que se está cerrando
+function cerrarConTrabajo(id){
+  var t=tareasMias[id];
+  if(!t){ toast("Refresc\u00e1 e intent\u00e1 de nuevo","err"); return; }
+  tareaEnCierre=id;
+  llenarSelect($("t-eq"), CONFIG.equipos);
+  // precarga: sector si coincide con la lista, síntoma con la descripción de la tarea
+  $("t-eq").value = CONFIG.equipos.indexOf(t.sector)>=0 ? t.sector : "";
+  $("t-pasaba").value = t.desc;
+  $("t-desc").value=""; $("t-quedo").value=""; $("t-rep").value=""; $("t-error").textContent="";
+  cierreSel=null; $("t-cierre-def").className="chip"; $("t-cierre-prov").className="chip";
+  $("t-ini").value = t.hora_tomada || ahoraHHMM(); // inicio = hora en que la tomó (editable)
+  $("t-fin").value = ahoraHHMM();
+  abrir("m-trabajo");
 }
 function postTarea(obj, cb){
   if(!CONFIG.SHEET_URL){ toast("Sin conexi\u00f3n","err"); return; }
@@ -784,6 +848,7 @@ function selCierre(v){
   $("t-cierre-prov").className="chip"+(v==="provisorio"?" on":"");
 }
 function abrirTrabajo(){
+  tareaEnCierre=null; // trabajo suelto, sin tarea vinculada
   llenarSelect($("t-eq"), CONFIG.equipos);
   $("t-pasaba").value=""; $("t-desc").value=""; $("t-quedo").value=""; $("t-rep").value=""; $("t-error").textContent="";
   cierreSel=null; $("t-cierre-def").className="chip"; $("t-cierre-prov").className="chip";
@@ -806,7 +871,13 @@ function guardarTrabajo(){
   if(!cierreSel){ $("t-error").textContent="Eleg&iacute; el tipo de cierre."; return; }
   if(!ini||!fin){ $("t-error").textContent="Cargá hora de inicio y fin."; return; }
   registrar("trabajo", { equipo:eq, que_pasaba:pasaba, que_hiciste:desc, como_quedo:quedo,
-    repuesto:rep, tipo_cierre:cierreSel, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin) });
+    repuesto:rep, tipo_cierre:cierreSel, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin),
+    tarea_id:(tareaEnCierre||"") });
+  // si venía de una tarea tomada, cerrarla en el backlog (con o sin señal)
+  if(tareaEnCierre){
+    cerrarTareaSegura(tareaEnCierre, "hecha", "", function(){ consultarTareas(); renderTareasLocal(); });
+    tareaEnCierre=null;
+  }
   cerrarModales(); toast("✓ Trabajo guardado","ok");
 }
 

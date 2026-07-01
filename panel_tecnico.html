@@ -72,6 +72,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .btn-parte{width:100%;margin-top:14px;border:none;border-radius:14px;padding:17px;
   background:#46D68C;color:#06121a;font-size:16px;font-weight:800;letter-spacing:.2px}
 .btn-parte:active{opacity:.85}
+/* ===== tareas (OT) ===== */
+.tarea-card{background:#16222F;border:1px solid #24364A;border-left:5px solid #4FD8E0;
+  border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.tarea-card.pri-alta{border-left-color:#FF6B7A}
+.tarea-card.vencida{border-color:#FF4D5E;border-left-color:#FF4D5E;background:rgba(255,77,94,.07)}
+.tarea-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px}
+.tarea-sector{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#7E93A8;font-weight:700}
+.tarea-desc{font-size:15px;font-weight:600;line-height:1.35;margin:3px 0 9px}
+.tarea-meta{font-size:11.5px;color:#7E93A8;margin-bottom:9px}
+.age{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.5px;border-radius:20px;
+  padding:3px 9px;white-space:nowrap}
+.age.ok{background:rgba(79,216,224,.15);color:#4FD8E0}
+.age.pronto{background:rgba(242,179,61,.18);color:#F2B33D}
+.age.vencida{background:#FF4D5E;color:#fff}
+.btn-tomar{width:100%;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:800;
+  background:#4FD8E0;color:#06121a}
+.btn-tomar:active{opacity:.85}
+.fila-cierre{display:flex;gap:8px}
+.fila-cierre button{flex:1;border:none;border-radius:11px;padding:13px 6px;font-size:14px;font-weight:800}
+.btn-hecha{background:#46D68C;color:#06121a}
+.btn-repuesto{background:#F2B33D;color:#3A2A0E}
+.rep-inline{display:none;margin-top:9px}
+.rep-inline input{width:100%;background:#0E1620;border:1px solid #24364A;border-radius:11px;color:#E8F0F6;
+  font-size:15px;padding:12px;margin-bottom:8px;-webkit-appearance:none}
+.rep-inline button{width:100%;border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:800;
+  background:#F2B33D;color:#3A2A0E}
+.badge-t{display:inline-block;background:#FF4D5E;color:#fff;font-size:10px;font-weight:800;
+  border-radius:20px;padding:2px 8px;margin-left:6px;vertical-align:middle}
 
 /* Modales */
 .modal-fondo{display:none;position:fixed;z-index:20;inset:0;background:rgba(8,13,19,.78)}
@@ -201,6 +229,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
       <span class="ic">⚠️</span><span class="tx"><b>Reportar una falla</b><small>Algo que viste mal</small></span></button>
     <button class="accion ronda" onclick="abrirRonda()">
       <span class="ic">📋</span><span class="tx"><b>Hacer la ronda</b><small>Amperaje y temperatura, r&aacute;pido</small></span></button>
+    <button class="accion" id="btn-nueva" style="display:none;border-left:5px solid #46D68C" onclick="abrirNueva()">
+      <span class="ic">➕</span><span class="tx"><b>Cargar tarea</b><small>Asignar trabajo al equipo, con plazo</small></span></button>
+  </div>
+
+  <div class="seccion" id="sec-mias" style="display:none">
+    <h2>🔧 Mis tareas en curso <span class="badge-t" id="badge-mias" style="display:none"></span></h2>
+    <div id="lista-mias"></div>
+  </div>
+
+  <div class="seccion" id="sec-tareas" style="display:none">
+    <h2>🧰 Tareas para tomar <span class="badge-t" id="badge-tareas" style="display:none"></span></h2>
+    <div id="lista-tareas"></div>
   </div>
 
   <div class="seccion">
@@ -292,6 +332,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   </div>
 </div>
 
+<!-- ============ MODAL NUEVA TAREA ============ -->
+<div class="modal-fondo" id="m-nueva">
+  <div class="modal">
+    <h3>Cargar tarea</h3>
+    <div class="sub">Le va a aparecer al equipo en &ldquo;Tareas para tomar&rdquo;.</div>
+    <div class="campo">
+      <label>Sector <span class="obl">*</span></label>
+      <select id="n-eq"></select>
+    </div>
+    <div class="campo">
+      <label>Qu&eacute; hay que hacer <span class="obl">*</span></label>
+      <textarea id="n-desc" placeholder="Ej: reparar tarimas del sector cajas"></textarea>
+    </div>
+    <div class="campo">
+      <label>Para <span class="obl">*</span></label>
+      <select id="n-para"></select>
+    </div>
+    <div class="campo">
+      <label>Prioridad <span class="obl">*</span></label>
+      <div class="chips">
+        <div class="chip" id="n-pri-media" onclick="selNPri('Media')">Media</div>
+        <div class="chip" id="n-pri-alta" onclick="selNPri('Alta')">Alta</div>
+      </div>
+    </div>
+    <div class="campo">
+      <label>Plazo m&aacute;ximo <span class="obl">*</span></label>
+      <div class="chips">
+        <div class="chip" id="n-pl-2" onclick="selNPlazo(2)">2 d&iacute;as</div>
+        <div class="chip" id="n-pl-4" onclick="selNPlazo(4)">4 d&iacute;as</div>
+        <div class="chip" id="n-pl-7" onclick="selNPlazo(7)">7 d&iacute;as</div>
+        <div class="chip" id="n-pl-0" onclick="selNPlazo(0)">Sin plazo</div>
+      </div>
+    </div>
+    <div class="aviso-error" id="n-error"></div>
+    <button class="btn btn-cian" onclick="guardarNueva()">Publicar tarea</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
 <!-- ============ MODAL RONDA ============ -->
 <div class="modal-fondo" id="m-ronda">
   <div class="modal">
@@ -331,6 +410,7 @@ var CONFIG = {
 
   /* 2) Equipo. Si dejás el PIN vacío, esa persona entra directo. */
   tecnicos: [
+    { nombre: "Fran", pin: "1984", puedeCargar: true },
     { nombre: "Jorge",     pin: "" },
     { nombre: "Daniel",    pin: "" },
     { nombre: "Lucas",     pin: "" },
@@ -477,14 +557,156 @@ function tecla(t){
 function volverANombres(){ $("zona-pin").style.display="none"; $("zona-nombres").style.display="block"; }
 function entrar(nombre){
   SES.nombre=nombre;
+  SES.puedeCargar=false;
+  var i; for(i=0;i<CONFIG.tecnicos.length;i++){ if(CONFIG.tecnicos[i].nombre===nombre && CONFIG.tecnicos[i].puedeCargar) SES.puedeCargar=true; }
+  $("btn-nueva").style.display = SES.puedeCargar ? "flex" : "none";
   $("scr-login").className="pantalla"; $("scr-home").className="pantalla visible";
   $("home-nombre").textContent=nombre;
   refrescarHoy(); enviarPendientes();
+  iniciarPollingTareas();
 }
 function salir(){
-  SES.nombre=null;
+  SES.nombre=null; detenerPollingTareas();
   $("scr-home").className="pantalla"; $("scr-login").className="pantalla visible";
   volverANombres();
+}
+
+/* ---------------- TAREAS (OT del backlog) ---------------- */
+var tareaTimer=null;
+function iniciarPollingTareas(){ consultarTareas(); tareaTimer=setInterval(consultarTareas, 60000); }
+function detenerPollingTareas(){ if(tareaTimer){ clearInterval(tareaTimer); tareaTimer=null; } }
+
+function consultarTareas(){
+  if(!CONFIG.SHEET_URL||!navigator.onLine||!SES.nombre) return;
+  var url=CONFIG.SHEET_URL+"?action=getTareas&tecnico="+encodeURIComponent(SES.nombre)+"&ts="+Date.now();
+  var x=new XMLHttpRequest();
+  x.open("GET",url,true); x.timeout=12000;
+  x.onload=function(){
+    try{ var res=JSON.parse(x.responseText); if(res){ renderTareas(res.disponibles||[], res.mias||[]); } }catch(e){}
+  };
+  x.send();
+}
+
+function chipEdad(t){
+  if(t.dias_restantes!==null && t.dias_restantes!==undefined && t.dias_restantes!==""){
+    if(t.dias_restantes<0) return "<span class='age vencida'>\u26a0 VENCIDA hace "+Math.abs(t.dias_restantes)+" d</span>";
+    if(t.dias_restantes===0) return "<span class='age vencida'>VENCE HOY</span>";
+    if(t.dias_restantes<=2) return "<span class='age pronto'>quedan "+t.dias_restantes+" d</span>";
+    return "<span class='age ok'>quedan "+t.dias_restantes+" d</span>";
+  }
+  if(t.dias_abierta>=5) return "<span class='age pronto'>hace "+t.dias_abierta+" d</span>";
+  return "<span class='age ok'>hace "+t.dias_abierta+" d</span>";
+}
+
+function ordenarTareas(a,b){
+  var va=(a.dias_restantes!==null&&a.dias_restantes<0)?1:0, vb=(b.dias_restantes!==null&&b.dias_restantes<0)?1:0;
+  if(va!==vb) return vb-va;
+  var pa=(a.prioridad==="Alta")?1:0, pb=(b.prioridad==="Alta")?1:0;
+  if(pa!==pb) return pb-pa;
+  return (b.dias_abierta||0)-(a.dias_abierta||0);
+}
+
+function renderTareas(disp, mias){
+  disp.sort(ordenarTareas); mias.sort(ordenarTareas);
+  var i,t,h;
+
+  // mis tareas
+  if(mias.length===0){ $("sec-mias").style.display="none"; }
+  else{
+    $("sec-mias").style.display="block";
+    $("badge-mias").style.display="inline"; $("badge-mias").textContent=mias.length;
+    h="";
+    for(i=0;i<mias.length;i++){ t=mias[i];
+      h+="<div class='tarea-card"+(t.prioridad==="Alta"?" pri-alta":"")+((t.dias_restantes!==null&&t.dias_restantes<0)?" vencida":"")+"'>";
+      h+="<div class='tarea-top'><span class='tarea-sector'>"+t.sector+"</span>"+chipEdad(t)+"</div>";
+      h+="<div class='tarea-desc'>"+t.desc+"</div>";
+      h+="<div class='fila-cierre'>";
+      h+="<button class='btn-hecha' onclick='cerrarTarea(\""+t.id+"\",\"hecha\",\"\")'>\u2713 La termin&eacute;</button>";
+      h+="<button class='btn-repuesto' onclick='mostrarRep(\""+t.id+"\")'>📦 Falta repuesto</button>";
+      h+="</div>";
+      h+="<div class='rep-inline' id='rep-"+t.id+"'><input type='text' id='repin-"+t.id+"' placeholder='&iquest;Qu&eacute; repuesto falta?'>";
+      h+="<button onclick='confirmarRep(\""+t.id+"\")'>Enviar a espera de repuestos</button></div>";
+      h+="</div>";
+    }
+    $("lista-mias").innerHTML=h;
+  }
+
+  // disponibles
+  if(disp.length===0){ $("sec-tareas").style.display="none"; }
+  else{
+    $("sec-tareas").style.display="block";
+    $("badge-tareas").style.display="inline"; $("badge-tareas").textContent=disp.length;
+    h="";
+    for(i=0;i<disp.length;i++){ t=disp[i];
+      h+="<div class='tarea-card"+(t.prioridad==="Alta"?" pri-alta":"")+((t.dias_restantes!==null&&t.dias_restantes<0)?" vencida":"")+"'>";
+      h+="<div class='tarea-top'><span class='tarea-sector'>"+t.sector+"</span>"+chipEdad(t)+"</div>";
+      h+="<div class='tarea-desc'>"+t.desc+"</div>";
+      h+="<div class='tarea-meta'>"+(t.prioridad==="Alta"?"🔴 Alta · ":"")+"cargada por "+t.de+(t.para&&t.para!=="Todos"?" · para "+t.para:"")+"</div>";
+      h+="<button class='btn-tomar' onclick='tomarTarea(\""+t.id+"\")'>Tomar esta tarea</button>";
+      h+="</div>";
+    }
+    $("lista-tareas").innerHTML=h;
+  }
+}
+
+function tomarTarea(id){
+  postTarea({ tipo:"tomarTarea", id:id, tecnico:SES.nombre }, function(resp){
+    if(resp==="TOMADA"){ toast("Ya la tom\u00f3 otro compa\u00f1ero","err"); }
+    else toast("\u2713 Tarea tuya. Est\u00e1 en Mis tareas","ok");
+    consultarTareas();
+  });
+}
+function mostrarRep(id){ var el=$("rep-"+id); el.style.display = (el.style.display==="block")?"none":"block"; }
+function confirmarRep(id){
+  var txt=$("repin-"+id).value.replace(/^\s+|\s+$/g,"");
+  if(!txt){ toast("Escrib\u00ed qu\u00e9 repuesto falta","err"); return; }
+  cerrarTarea(id,"repuesto",txt);
+}
+function cerrarTarea(id, resultado, repTxt){
+  postTarea({ tipo:"cerrarTarea", id:id, tecnico:SES.nombre, resultado:resultado, repuesto:repTxt }, function(){
+    toast(resultado==="hecha"?"\u2713 Tarea cerrada":"📦 Qued\u00f3 en espera de repuestos","ok");
+    consultarTareas();
+  });
+}
+function postTarea(obj, cb){
+  if(!CONFIG.SHEET_URL){ toast("Sin conexi\u00f3n","err"); return; }
+  var x=new XMLHttpRequest();
+  x.open("POST",CONFIG.SHEET_URL,true);
+  x.setRequestHeader("Content-Type","text/plain;charset=utf-8");
+  x.timeout=12000;
+  x.onload=function(){ cb(x.responseText); };
+  x.onerror=function(){ toast("No se pudo, reintent\u00e1","err"); };
+  x.send(JSON.stringify(obj));
+}
+
+/* ---- nueva tarea ---- */
+var nPri=null, nPlazo=null;
+function selNPri(v){ nPri=v; $("n-pri-media").className="chip"+(v==="Media"?" on":""); $("n-pri-alta").className="chip"+(v==="Alta"?" on":""); }
+function selNPlazo(v){ nPlazo=v;
+  var ids=["n-pl-2","n-pl-4","n-pl-7","n-pl-0"], vals=[2,4,7,0], i;
+  for(i=0;i<ids.length;i++) $(ids[i]).className="chip"+(vals[i]===v?" on":"");
+}
+function abrirNueva(){
+  llenarSelect($("n-eq"), CONFIG.equipos);
+  var nombres=["Todos"], i;
+  for(i=0;i<CONFIG.tecnicos.length;i++){ if(!CONFIG.tecnicos[i].puedeCargar) nombres.push(CONFIG.tecnicos[i].nombre); }
+  $("n-para").innerHTML="";
+  for(i=0;i<nombres.length;i++) $("n-para").innerHTML+="<option>"+nombres[i]+"</option>";
+  $("n-desc").value=""; $("n-error").textContent="";
+  nPri=null; nPlazo=null;
+  selNPri(""); selNPlazo(-1);
+  abrir("m-nueva");
+}
+function guardarNueva(){
+  var eq=$("n-eq").value, desc=val("n-desc"), para=$("n-para").value;
+  if(!eq){ $("n-error").textContent="Eleg\u00ed el sector."; return; }
+  if(!desc){ $("n-error").textContent="Escrib\u00ed qu\u00e9 hay que hacer."; return; }
+  if(!nPri){ $("n-error").textContent="Eleg\u00ed la prioridad."; return; }
+  if(nPlazo===null || nPlazo===-1){ $("n-error").textContent="Eleg\u00ed el plazo."; return; }
+  postTarea({ tipo:"nuevaTarea", sector:eq, desc:desc, para:para, prioridad:nPri, plazo_dias:nPlazo, de:SES.nombre }, function(){
+    toast("\u2713 Tarea publicada","ok");
+    cerrarModales(); consultarTareas();
+  });
 }
 
 /* ---------------- PARTE DE TURNO → WhatsApp ---------------- */

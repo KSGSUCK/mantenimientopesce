@@ -801,7 +801,7 @@ function enviarParte(){
   for(i=0;i<mios.length;i++){ var d=mios[i].datos;
     txt += "• " + d.equipo + ": " + d.que_pasaba + " — *" + (d.tipo_cierre==="definitivo"?"Definitivo":"Provisorio") + "*\n";
   }
-  txt += "\n— PMOS Mantenimiento";
+  txt += "\n- fin del reporte";
 
   marcarParteEnviado(SES.nombre);
   window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");

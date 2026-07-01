@@ -149,7 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   background:#16222F;color:#7E93A8;flex:0 0 auto;}
 .temp-sign.neg{border-color:#4FD8E0;color:#4FD8E0;background:rgba(79,216,224,.12);}
 .temp-sign.pos{border-color:#F2B33D;color:#F2B33D;background:rgba(242,179,61,.12);}
-.temp-mag{flex:0 0 76px;width:76px;background:#16222F;border:1.5px solid #24364A;border-radius:11px;color:#E8F0F6;
+.temp-mag{flex:0 0 88px;width:88px;background:#16222F;border:1.5px solid #24364A;border-radius:11px;color:#E8F0F6;
   font-size:21px;font-weight:700;padding:12px 4px;text-align:center;-webkit-appearance:none;appearance:none;
   font-family:ui-monospace,Menlo,monospace;}
 .temp-mag:focus{border-color:#4FD8E0;outline:none;}
@@ -641,10 +641,21 @@ function tempCtrl(k, etiqueta){
   var h="<div class='temp-row'>";
   h+="<span class='tl'>"+etiqueta+"</span>";
   h+="<button class='temp-sign neg' id='"+idTsign(k)+"' onclick='toggleSigno(\""+k+"\")'>\u2212</button>";
-  h+="<input class='temp-mag' type='number' inputmode='decimal' maxlength='3' id='"+idTmag(k)+"' value='"+Math.abs(CONFIG.TEMP_DEFAULT)+"' oninput='if(this.value.length>3)this.value=this.value.slice(0,3);actualizarProgreso();'>";
+  h+="<input class='temp-mag' type='text' inputmode='decimal' pattern='[0-9]*[.,]?[0-9]*' id='"+idTmag(k)+"' value='"+Math.abs(CONFIG.TEMP_DEFAULT)+"' oninput='limpiarTemp(this);actualizarProgreso();'>";
   h+="<span class='temp-unit'>\u00b0C</span>";
   h+="</div>";
   return h;
+}
+function limpiarTemp(el){
+  var v=el.value;
+  // deja solo dígitos y un punto/coma, normaliza coma a punto
+  v=v.replace(",",".").replace(/[^0-9.]/g,"");
+  var partes=v.split(".");
+  if(partes.length>2) v=partes[0]+"."+partes.slice(1).join("");
+  partes=v.split(".");
+  if(partes[0].length>2) partes[0]=partes[0].slice(0,2);
+  if(partes[1]!==undefined && partes[1].length>1) partes[1]=partes[1].slice(0,1);
+  el.value = partes.length>1 ? partes[0]+"."+partes[1] : partes[0];
 }
 function toggleSigno(k){
   tempSign[k] = (tempSign[k]==="-") ? "+" : "-";

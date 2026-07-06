@@ -657,7 +657,7 @@ function renderTareas(disp, mias){
   else{
     $("sec-tareas").style.display="block";
     $("badge-tareas").style.display="inline"; $("badge-tareas").textContent=disp.length;
-    var LIMITE=5;
+    var LIMITE=7;
     var visibles = (mostrarTodas || disp.length<=LIMITE) ? disp.length : LIMITE;
     h="";
     for(i=0;i<visibles;i++){ t=disp[i];

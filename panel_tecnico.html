@@ -100,6 +100,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   background:#F2B33D;color:#3A2A0E}
 .badge-t{display:inline-block;background:#FF4D5E;color:#fff;font-size:10px;font-weight:800;
   border-radius:20px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.btn-vermas{width:100%;background:transparent;border:1px dashed #2A3B4C;border-radius:11px;
+  color:#7E93A8;padding:12px;font-size:13.5px;font-weight:600;margin-top:2px}
+.btn-vermas:active{color:#4FD8E0;border-color:#4FD8E0}
 
 /* Modales */
 .modal-fondo{display:none;position:fixed;z-index:20;inset:0;background:rgba(8,13,19,.78)}
@@ -649,13 +652,15 @@ function renderTareas(disp, mias){
     $("lista-mias").innerHTML=h;
   }
 
-  // disponibles
+  // disponibles (muestra las 5 más urgentes; el resto plegado)
   if(disp.length===0){ $("sec-tareas").style.display="none"; }
   else{
     $("sec-tareas").style.display="block";
     $("badge-tareas").style.display="inline"; $("badge-tareas").textContent=disp.length;
+    var LIMITE=5;
+    var visibles = (mostrarTodas || disp.length<=LIMITE) ? disp.length : LIMITE;
     h="";
-    for(i=0;i<disp.length;i++){ t=disp[i];
+    for(i=0;i<visibles;i++){ t=disp[i];
       h+="<div class='tarea-card"+(t.prioridad==="Alta"?" pri-alta":"")+((t.dias_restantes!==null&&t.dias_restantes<0)?" vencida":"")+"'>";
       h+="<div class='tarea-top'><span class='tarea-sector'>"+t.sector+"</span>"+chipEdad(t)+"</div>";
       h+="<div class='tarea-desc'>"+t.desc+"</div>";
@@ -663,9 +668,15 @@ function renderTareas(disp, mias){
       h+="<button class='btn-tomar' onclick='tomarTarea(\""+t.id+"\")'>Tomar esta tarea</button>";
       h+="</div>";
     }
+    if(disp.length>LIMITE){
+      if(!mostrarTodas) h+="<button class='btn-vermas' onclick='toggleTodas()'>\u25bc Ver todas ("+disp.length+")</button>";
+      else h+="<button class='btn-vermas' onclick='toggleTodas()'>\u25b2 Ver solo las m\u00e1s urgentes</button>";
+    }
     $("lista-tareas").innerHTML=h;
   }
 }
+var mostrarTodas=false;
+function toggleTodas(){ mostrarTodas=!mostrarTodas; renderTareasLocal(); }
 
 function tomarTarea(id){
   if(!navigator.onLine){

@@ -103,6 +103,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .btn-vermas{width:100%;background:transparent;border:1px dashed #2A3B4C;border-radius:11px;
   color:#7E93A8;padding:12px;font-size:13.5px;font-weight:600;margin-top:2px}
 .btn-vermas:active{color:#4FD8E0;border-color:#4FD8E0}
+/* estado de punto en ronda */
+.btn-nm{flex:0 0 40px;height:44px;border-radius:10px;border:1.5px solid #24364A;background:#16222F;
+  color:#7E93A8;font-size:19px;font-weight:800;margin-left:6px;align-self:flex-end}
+.btn-nm.marcado{border-color:#F2B33D;color:#F2B33D;background:rgba(242,179,61,.12)}
+.pt-chips{display:none;gap:6px;margin:7px 0 3px}
+.pt-chips.abierto{display:flex}
+.pt-chip{flex:1;border:1.5px solid #24364A;border-radius:10px;padding:10px 4px;text-align:center;
+  font-size:12px;font-weight:700;color:#7E93A8;background:#16222F}
+.pt-chip.on{border-color:#F2B33D;color:#3A2A0E;background:#F2B33D}
+.pt-estado-txt{font-size:12px;font-weight:800;color:#F2B33D;letter-spacing:.5px;text-transform:uppercase;margin:4px 0}
+.no-medible input{opacity:.28;pointer-events:none}
 
 /* Modales */
 .modal-fondo{display:none;position:fixed;z-index:20;inset:0;background:rgba(8,13,19,.78)}
@@ -320,6 +331,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
         <div class="chip" id="f-est-anda" onclick="selEstadoFalla('anda')">🔧 Anda pero hay que verlo</div>
         <div class="chip" id="f-est-noanda" onclick="selEstadoFalla('fuera')">⛔ No anda</div>
         <div class="chip" id="f-est-rep" onclick="selEstadoFalla('repuesto')">📦 Falta repuesto</div>
+        <div class="chip" id="f-est-diag" onclick="selEstadoFalla('diagnostico')">🔍 Necesita diagn&oacute;stico</div>
       </div>
     </div>
     <div class="campo">
@@ -437,6 +449,11 @@ var CONFIG = {
   TEMP_MIN: -30, TEMP_MAX: 5,
 
   /* 5) Desbalance de fases: salta si diferencia > 30%, piso 8 A */
+  /* Compresores para pre-marcar como fuera de servicio en cada ronda.
+     HOY VACÍA: los técnicos marcan el estado ellos mismos con el botón ⊘.
+     (Si algún día querés pre-marcar, agregá nombres: ["Compresor 2","Compresor 4"]) */
+  fueraServicio: [],
+
   UMBRAL_DESBALANCE: 0.30,
   MIN_AMP: 8,
   FASES: ["R","S","T"],
@@ -488,6 +505,15 @@ var OUTBOX_KEY="pmos_f1_outbox", LOG_KEY="pmos_f1_log";
 function leer(k){ try{ return JSON.parse(window.localStorage.getItem(k)||"[]"); }catch(e){ return []; } }
 function escribir(k,a){ try{ window.localStorage.setItem(k, JSON.stringify(a)); }catch(e){} }
 
+/* freno anti doble-toque: ignora toques repetidos por 1.5 seg */
+var _frenado=false;
+function frenar(){
+  if(_frenado) return true;
+  _frenado=true;
+  setTimeout(function(){ _frenado=false; }, 1500);
+  return false;
+}
+
 function registrar(tipo, datos){
   var rec = { tipo: tipo, fecha: new Date().toISOString(), dia: hoyKey(),
               tecnico: SES.nombre, datos: datos, enviado: false,
@@ -512,7 +538,7 @@ function enviarUno(pend, idx){
   var x = new XMLHttpRequest();
   x.open("POST", CONFIG.SHEET_URL, true);
   x.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
-  x.timeout = 12000;
+  x.timeout = 30000;
   x.onload = function(){ marcarEnviado(rec.uid); enviarUno(pend, idx+1); };
   x.onerror = function(){ marcarBarra("sin-senal","No se pudo enviar — queda guardado"); };
   x.ontimeout = function(){ marcarBarra("sin-senal","Sin señal — queda guardado"); };
@@ -583,7 +609,7 @@ function consultarTareas(){
   if(!CONFIG.SHEET_URL||!navigator.onLine||!SES.nombre) return;
   var url=CONFIG.SHEET_URL+"?action=getTareas&tecnico="+encodeURIComponent(SES.nombre)+"&ts="+Date.now();
   var x=new XMLHttpRequest();
-  x.open("GET",url,true); x.timeout=12000;
+  x.open("GET",url,true); x.timeout=30000;
   x.onload=function(){
     try{ var res=JSON.parse(x.responseText); if(res){ renderTareas(res.disponibles||[], res.mias||[]); } }catch(e){}
   };
@@ -657,7 +683,7 @@ function renderTareas(disp, mias){
   else{
     $("sec-tareas").style.display="block";
     $("badge-tareas").style.display="inline"; $("badge-tareas").textContent=disp.length;
-    var LIMITE=7;
+    var LIMITE=5;
     var visibles = (mostrarTodas || disp.length<=LIMITE) ? disp.length : LIMITE;
     h="";
     for(i=0;i<visibles;i++){ t=disp[i];
@@ -679,6 +705,7 @@ var mostrarTodas=false;
 function toggleTodas(){ mostrarTodas=!mostrarTodas; renderTareasLocal(); }
 
 function tomarTarea(id){
+  if(frenar()) return;
   if(!navigator.onLine){
     toast("Sin se\u00f1al \u2014 para tomar una tarea necesit\u00e1s se\u00f1al, as\u00ed queda reservada para vos","err");
     return;
@@ -748,7 +775,7 @@ function postTarea(obj, cb){
   var x=new XMLHttpRequest();
   x.open("POST",CONFIG.SHEET_URL,true);
   x.setRequestHeader("Content-Type","text/plain;charset=utf-8");
-  x.timeout=12000;
+  x.timeout=30000;
   x.onload=function(){ cb(x.responseText); };
   x.onerror=function(){ toast("No se pudo, reintent\u00e1","err"); };
   x.send(JSON.stringify(obj));
@@ -773,6 +800,7 @@ function abrirNueva(){
   abrir("m-nueva");
 }
 function guardarNueva(){
+  if(frenar()) return;
   var eq=$("n-eq").value, desc=val("n-desc"), para=$("n-para").value;
   if(!eq){ $("n-error").textContent="Eleg\u00ed el sector."; return; }
   if(!desc){ $("n-error").textContent="Escrib\u00ed qu\u00e9 hay que hacer."; return; }
@@ -845,7 +873,7 @@ function resumenItem(r){
   if(r.tipo==="falla")   return { linea:(r.datos.equipo||"")+": "+r.datos.que_viste, meta:"→ "+etiquetaEstado(r.datos.estado)+(r.datos.urgencia==="urgente"?" · URGENTE":"") };
   return { linea:"Ronda completa", meta:r.datos.puntos.length+" registros" };
 }
-function etiquetaEstado(e){ return {anda:"Anda pero hay que verlo",fuera:"No anda",repuesto:"Falta repuesto"}[e]||e; }
+function etiquetaEstado(e){ return {anda:"Anda pero hay que verlo",fuera:"No anda",repuesto:"Falta repuesto",diagnostico:"Necesita diagn\u00f3stico"}[e]||e; }
 
 /* ---------------- modales ---------------- */
 function cerrarModales(){ var m=document.querySelectorAll(".modal-fondo"), i; for(i=0;i<m.length;i++) m[i].className="modal-fondo"; }
@@ -873,6 +901,7 @@ function diffMin(ini, fin){
   if(m<0) m+=24*60; return m;
 }
 function guardarTrabajo(){
+  if(frenar()) return;
   var eq=$("t-eq").value, pasaba=val("t-pasaba"), desc=val("t-desc"), quedo=val("t-quedo"),
       rep=val("t-rep"), ini=$("t-ini").value, fin=$("t-fin").value;
   if(!eq){ $("t-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
@@ -881,8 +910,15 @@ function guardarTrabajo(){
   if(!quedo){ $("t-error").textContent="Escrib&iacute; c&oacute;mo qued&oacute;."; return; }
   if(!cierreSel){ $("t-error").textContent="Eleg&iacute; el tipo de cierre."; return; }
   if(!ini||!fin){ $("t-error").textContent="Cargá hora de inicio y fin."; return; }
+  var durMin=diffMin(ini,fin);
+  if(durMin>240){
+    var hs=Math.floor(durMin/60), ms=durMin%60;
+    if(!window.confirm("La duraci\u00f3n da "+hs+" h "+ms+" min ("+ini+" a "+fin+").\n\u00bfEs correcto?")){
+      $("t-error").textContent="Revis\u00e1 las horas de inicio y fin."; return;
+    }
+  }
   registrar("trabajo", { equipo:eq, que_pasaba:pasaba, que_hiciste:desc, como_quedo:quedo,
-    repuesto:rep, tipo_cierre:cierreSel, inicio:ini, fin:fin, duracion_min:diffMin(ini,fin),
+    repuesto:rep, tipo_cierre:cierreSel, inicio:ini, fin:fin, duracion_min:durMin,
     tarea_id:(tareaEnCierre||"") });
   // si venía de una tarea tomada, cerrarla en el backlog (con o sin señal)
   if(tareaEnCierre){
@@ -899,6 +935,7 @@ function selEstadoFalla(v){
   $("f-est-anda").className="chip"+(v==="anda"?" on":"");
   $("f-est-noanda").className="chip"+(v==="fuera"?" on":"");
   $("f-est-rep").className="chip"+(v==="repuesto"?" on":"");
+  $("f-est-diag").className="chip"+(v==="diagnostico"?" on":"");
 }
 function selUrgFalla(v){
   fUrgSel=v;
@@ -909,11 +946,12 @@ function abrirFalla(){
   llenarSelect($("f-eq"), CONFIG.equipos);
   $("f-vio").value=""; $("f-error").textContent="";
   fEstadoSel=null; fUrgSel=null;
-  $("f-est-anda").className="chip"; $("f-est-noanda").className="chip"; $("f-est-rep").className="chip";
+  $("f-est-anda").className="chip"; $("f-est-noanda").className="chip"; $("f-est-rep").className="chip"; $("f-est-diag").className="chip";
   $("f-urg-esp").className="chip"; $("f-urg-urg").className="chip";
   abrir("m-falla");
 }
 function guardarFalla(){
+  if(frenar()) return;
   var eq=$("f-eq").value, vio=val("f-vio");
   if(!eq){ $("f-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
   if(!vio){ $("f-error").textContent="Escrib&iacute; qu&eacute; viste mal."; return; }
@@ -986,6 +1024,7 @@ function totalPuntos(){
 
 function abrirRonda(){
   var h="", si, pi, sec, j, c, k;
+  estadoPunto={};
   for(si=0;si<CONFIG.seccionesRonda.length;si++){
     sec=CONFIG.seccionesRonda[si];
     h+="<div class='sec-titulo'>"+sec.titulo+"</div>";
@@ -994,11 +1033,13 @@ function abrirRonda(){
       for(pi=0;pi<sec.puntos.length;pi++){
         h+="<div class='punto' id='"+idCard(si,pi)+"'>";
         h+="<div class='pn'>"+sec.puntos[pi]+"<span class='ok' id='ok-"+si+"-"+pi+"'></span></div>";
-        h+="<div class='vars'>";
+        h+="<div style='display:flex;align-items:flex-end'><div class='vars' style='flex:1' id='vars-"+si+"-"+pi+"'>";
         for(j=0;j<3;j++) h+="<div class='vbox'><label>"+CONFIG.FASES[j]+"</label><input class='mono' type='number' inputmode='decimal' id='"+idAmp(si,pi,j)+"' oninput='chkCont("+si+","+pi+")' placeholder='0'></div>";
-        h+="</div><div id='"+idAlert(si,pi)+"'></div>";
+        h+="</div><button class='btn-nm' id='nm-"+si+"-"+pi+"' onclick='togglePtChips("+si+","+pi+")'>\u2298</button></div>";
+        h+=ptChipsHTML(si,pi);
+        h+="<div id='"+idAlert(si,pi)+"'></div>";
         k=si+"_"+pi+"_t";
-        h+=tempCtrl(k,"Temperatura");
+        h+="<div id='tw-"+si+"-"+pi+"'>"+tempCtrl(k,"Temperatura")+"</div>";
         h+="</div>";
       }
     }
@@ -1008,9 +1049,11 @@ function abrirRonda(){
       h+="<div class='pn'>Compresores <span class='ok' id='okz-"+si+"'></span></div>";
       for(pi=0;pi<sec.comps.length;pi++){
         c=sec.comps[pi];
-        h+="<div class='comp-row'><span class='cl'>Compresor "+c+"</span><div class='cv'>";
+        h+="<div class='comp-row'><span class='cl'>Compresor "+c+"</span><div class='cv' id='vars-"+si+"-"+pi+"'>";
         for(j=0;j<3;j++) h+="<div class='vbox'><label>"+CONFIG.FASES[j]+"</label><input class='mono' type='number' inputmode='decimal' id='"+idAmp(si,pi,j)+"' oninput='chkZona("+si+")' placeholder='0'></div>";
-        h+="</div></div><div id='"+idAlert(si,pi)+"'></div>";
+        h+="</div><button class='btn-nm' id='nm-"+si+"-"+pi+"' onclick='togglePtChips("+si+","+pi+")'>\u2298</button></div>";
+        h+=ptChipsHTML(si,pi);
+        h+="<div id='"+idAlert(si,pi)+"'></div>";
       }
       h+="<div class='temps-zona'>";
       h+=tempCtrl(si+"_te","Temp. entrada");
@@ -1034,12 +1077,78 @@ function abrirRonda(){
     }
   }
   $("ronda-puntos").innerHTML=h;
+  // pre-marcar los fuera de servicio conocidos del CONFIG
+  for(si=0;si<CONFIG.seccionesRonda.length;si++){
+    sec=CONFIG.seccionesRonda[si];
+    if(sec.tipo!=="zona") continue;
+    for(pi=0;pi<sec.comps.length;pi++){
+      if(CONFIG.fueraServicio && CONFIG.fueraServicio.indexOf("Compresor "+sec.comps[pi])>=0){
+        setEstadoPunto(si,pi,"fuera_servicio");
+      }
+    }
+  }
   $("ronda-obs").value="";
-  $("ronda-sub").textContent="La temperatura arranca en negativo. Si alguna es positiva, toc\u00e1 el bot\u00f3n \u2212/+.";
+  $("ronda-sub").textContent="Todo punto debe quedar medido o marcado con \u2298 (apagado / sin acceso / fuera de servicio).";
   $("ronda-error").textContent="";
   batSel={};
   actualizarProgreso();
   abrir("m-ronda");
+}
+
+/* ---- estado de punto (apagado / sin acceso / fuera de servicio) ---- */
+var estadoPunto={}; // "si-pi" -> estado
+var ETIQ_PT={apagado:"APAGADO",sin_acceso:"SIN ACCESO",fuera_servicio:"FUERA DE SERVICIO"};
+
+function ptChipsHTML(si,pi){
+  var b="pt-"+si+"-"+pi;
+  var h="<div class='pt-chips' id='chips-"+b+"'>";
+  h+="<div class='pt-chip' id='"+b+"-apagado' onclick='setEstadoPunto("+si+","+pi+",\"apagado\")'>Apagado</div>";
+  h+="<div class='pt-chip' id='"+b+"-sin_acceso' onclick='setEstadoPunto("+si+","+pi+",\"sin_acceso\")'>Sin acceso</div>";
+  h+="<div class='pt-chip' id='"+b+"-fuera_servicio' onclick='setEstadoPunto("+si+","+pi+",\"fuera_servicio\")'>F. servicio</div>";
+  h+="</div><div class='pt-estado-txt' id='ptxt-"+si+"-"+pi+"' style='display:none'></div>";
+  return h;
+}
+function togglePtChips(si,pi){
+  var key=si+"-"+pi;
+  if(estadoPunto[key]){ setEstadoPunto(si,pi,estadoPunto[key]); return; } // ya marcado: desmarca
+  var el=$("chips-pt-"+si+"-"+pi);
+  el.className = el.className.indexOf("abierto")>=0 ? "pt-chips" : "pt-chips abierto";
+}
+function setEstadoPunto(si,pi,estado){
+  var key=si+"-"+pi;
+  var b="pt-"+si+"-"+pi;
+  var chips=["apagado","sin_acceso","fuera_servicio"], j;
+  if(estadoPunto[key]===estado){
+    // desmarcar: vuelve a medible
+    delete estadoPunto[key];
+    for(j=0;j<chips.length;j++){ var e0=$(b+"-"+chips[j]); if(e0) e0.className="pt-chip"; }
+    $("ptxt-"+si+"-"+pi).style.display="none";
+    $("nm-"+si+"-"+pi).className="btn-nm";
+    var v0=$("vars-"+si+"-"+pi); if(v0) v0.className=v0.className.replace(" no-medible","");
+    var tw0=$("tw-"+si+"-"+pi); if(tw0) tw0.className="";
+  } else {
+    estadoPunto[key]=estado;
+    for(j=0;j<chips.length;j++){ var e1=$(b+"-"+chips[j]); if(e1) e1.className="pt-chip"+(chips[j]===estado?" on":""); }
+    var tx=$("ptxt-"+si+"-"+pi); tx.textContent="\u2298 "+ETIQ_PT[estado]; tx.style.display="block";
+    $("nm-"+si+"-"+pi).className="btn-nm marcado";
+    var v1=$("vars-"+si+"-"+pi); if(v1 && v1.className.indexOf("no-medible")<0) v1.className+=" no-medible";
+    var tw1=$("tw-"+si+"-"+pi); if(tw1) tw1.className="no-medible";
+    // limpiar valores que hubiera
+    for(j=0;j<3;j++){ var inp=$(idAmp(si,pi,j)); if(inp) inp.value=""; }
+    var al=$(idAlert(si,pi)); if(al) al.innerHTML="";
+  }
+  $("chips-pt-"+si+"-"+pi).className="pt-chips";
+  // refrescar completitud
+  var sec=CONFIG.seccionesRonda[si];
+  if(sec.tipo==="cont") chkCont(si,pi);
+  else if(sec.tipo==="zona") chkZona(si);
+  actualizarProgreso();
+}
+function puntoResuelto(si,pi,conTemp){
+  if(estadoPunto[si+"-"+pi]) return true;
+  var ok=(numero(idAmp(si,pi,0))!==null && numero(idAmp(si,pi,1))!==null && numero(idAmp(si,pi,2))!==null);
+  if(conTemp) ok = ok && getTemp(si+"_"+pi+"_t")!==null;
+  return ok;
 }
 
 function numero(id){ var el=$(id); if(!el) return null; var v=el.value; return v===""?null:parseFloat(v); }
@@ -1060,9 +1169,8 @@ function evalDesbalance(si,pi){
 }
 
 function chkCont(si,pi){
-  var e=evalDesbalance(si,pi);
-  var k=si+"_"+pi+"_t", temp=getTemp(k);
-  var comp=(e.completo && temp!==null);
+  if(!estadoPunto[si+"-"+pi]) evalDesbalance(si,pi);
+  var comp=puntoResuelto(si,pi,true);
   $("ok-"+si+"-"+pi).textContent=comp?"\u2713":"";
   $(idCard(si,pi)).className="punto"+(comp?" completo":"");
   actualizarProgreso();
@@ -1070,7 +1178,10 @@ function chkCont(si,pi){
 
 function chkZona(si){
   var sec=CONFIG.seccionesRonda[si], pi, todos=true;
-  for(pi=0;pi<sec.comps.length;pi++){ var e=evalDesbalance(si,pi); if(!e.completo) todos=false; }
+  for(pi=0;pi<sec.comps.length;pi++){
+    if(estadoPunto[si+"-"+pi]) continue;
+    var e=evalDesbalance(si,pi); if(!e.completo) todos=false;
+  }
   var te=getTemp(si+"_te"), tf=getTemp(si+"_tf");
   var comp=(todos && te!==null && tf!==null);
   $("okz-"+si).textContent=comp?"\u2713":"";
@@ -1092,7 +1203,7 @@ function selBat(si,pi,estado){
 function zonaCompleta(si){
   var sec=CONFIG.seccionesRonda[si], pi;
   for(pi=0;pi<sec.comps.length;pi++){
-    if(numero(idAmp(si,pi,0))===null||numero(idAmp(si,pi,1))===null||numero(idAmp(si,pi,2))===null) return false;
+    if(!puntoResuelto(si,pi,false)) return false;
   }
   return (getTemp(si+"_te")!==null && getTemp(si+"_tf")!==null);
 }
@@ -1103,8 +1214,7 @@ function actualizarProgreso(){
     sec=CONFIG.seccionesRonda[si];
     if(sec.tipo==="cont"){
       for(pi=0;pi<sec.puntos.length;pi++){
-        k=si+"_"+pi+"_t";
-        if(numero(idAmp(si,pi,0))!==null&&numero(idAmp(si,pi,1))!==null&&numero(idAmp(si,pi,2))!==null&&getTemp(k)!==null) hechos++;
+        if(puntoResuelto(si,pi,true)) hechos++;
       }
     } else if(sec.tipo==="zona"){
       if(zonaCompleta(si)) hechos++;
@@ -1117,18 +1227,49 @@ function actualizarProgreso(){
 }
 
 function guardarRonda(){
-  var puntos=[], si, pi, sec, c, k, r, d, t, mx, mn, desb, te, tf, temp, est, amp;
+  if(frenar()) return;
+  var puntos=[], faltan=[], si, pi, sec, c, k, r, d, t, mx, mn, desb, te, tf, temp, est, amp, ep;
+
+  // 1) VALIDACION: ningún punto puede quedar sin resolver
+  for(si=0;si<CONFIG.seccionesRonda.length;si++){
+    sec=CONFIG.seccionesRonda[si];
+    if(sec.tipo==="cont"){
+      for(pi=0;pi<sec.puntos.length;pi++){
+        if(!puntoResuelto(si,pi,true)) faltan.push(sec.puntos[pi]);
+      }
+    } else if(sec.tipo==="zona"){
+      for(pi=0;pi<sec.comps.length;pi++){
+        if(!puntoResuelto(si,pi,false)) faltan.push("Compresor "+sec.comps[pi]);
+      }
+      if(getTemp(si+"_te")===null || getTemp(si+"_tf")===null) faltan.push(sec.titulo+" (temps)");
+    } else if(sec.tipo==="bateria"){
+      for(pi=0;pi<sec.puntos.length;pi++){
+        if(!batSel[si+"-"+pi]) faltan.push(sec.puntos[pi]);
+      }
+    }
+  }
+  if(faltan.length>0){
+    var lista = faltan.slice(0,6).join(", ") + (faltan.length>6 ? " y "+(faltan.length-6)+" m\u00e1s" : "");
+    $("ronda-error").textContent="Faltan: "+lista+". Mediles o marcalos con \u2298 (apagado / sin acceso / F. servicio).";
+    return;
+  }
+
+  // 2) ARMADO del registro (todo punto genera fila, medido o marcado)
   for(si=0;si<CONFIG.seccionesRonda.length;si++){
     sec=CONFIG.seccionesRonda[si];
 
     if(sec.tipo==="cont"){
       for(pi=0;pi<sec.puntos.length;pi++){
+        ep=estadoPunto[si+"-"+pi];
+        if(ep){
+          puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"contenedor", estado_punto:ep });
+          continue;
+        }
         r=numero(idAmp(si,pi,0)); d=numero(idAmp(si,pi,1)); t=numero(idAmp(si,pi,2));
         k=si+"_"+pi+"_t"; temp=getTemp(k);
-        if(r===null && d===null && t===null && temp===null) continue;
         mx=Math.max(r||0,d||0,t||0); mn=Math.min(r||0,d||0,t||0);
         desb=(mx>=CONFIG.MIN_AMP && mx>0 && (mx-mn)/mx>CONFIG.UMBRAL_DESBALANCE)?Math.round((mx-mn)/mx*100):0;
-        puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"contenedor", R:r, D:d, T:t, desbalance_pct:desb, temp_entrada:temp, temp_fondo:null });
+        puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"contenedor", estado_punto:"medido", R:r, D:d, T:t, desbalance_pct:desb, temp_entrada:temp, temp_fondo:null });
       }
     }
 
@@ -1136,30 +1277,30 @@ function guardarRonda(){
       te=getTemp(si+"_te"); tf=getTemp(si+"_tf");
       for(pi=0;pi<sec.comps.length;pi++){
         c=sec.comps[pi];
+        ep=estadoPunto[si+"-"+pi];
+        if(ep){
+          puntos.push({ seccion:sec.titulo, punto:"Compresor "+c, tipo:"compresor", num:c, estado_punto:ep });
+          continue;
+        }
         r=numero(idAmp(si,pi,0)); d=numero(idAmp(si,pi,1)); t=numero(idAmp(si,pi,2));
-        if(r===null && d===null && t===null) continue;
         mx=Math.max(r||0,d||0,t||0); mn=Math.min(r||0,d||0,t||0);
         desb=(mx>=CONFIG.MIN_AMP && mx>0 && (mx-mn)/mx>CONFIG.UMBRAL_DESBALANCE)?Math.round((mx-mn)/mx*100):0;
-        puntos.push({ seccion:sec.titulo, punto:"Compresor "+c, tipo:"compresor", num:c, R:r, D:d, T:t, desbalance_pct:desb });
+        puntos.push({ seccion:sec.titulo, punto:"Compresor "+c, tipo:"compresor", num:c, estado_punto:"medido", R:r, D:d, T:t, desbalance_pct:desb });
       }
-      if(te!==null || tf!==null){
-        puntos.push({ seccion:sec.titulo, punto:sec.titulo+" - Temperatura", tipo:"temp_zona", temp_entrada:te, temp_fondo:tf });
-      }
+      puntos.push({ seccion:sec.titulo, punto:sec.titulo+" - Temperatura", tipo:"temp_zona", estado_punto:"medido", temp_entrada:te, temp_fondo:tf });
     }
 
     else if(sec.tipo==="bateria"){
       for(pi=0;pi<sec.puntos.length;pi++){
         est=batSel[si+"-"+pi]; amp=numero(idBatAmp(si,pi));
-        if(!est && amp===null) continue;
-        puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"bateria", estado:est||"", amp_bateria:amp });
+        puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"bateria", estado_punto:"medido", estado:est||"", amp_bateria:amp });
       }
     }
   }
-  if(puntos.length===0){ $("ronda-error").textContent="Carg\u00e1 al menos un punto."; return; }
   var obs=$("ronda-obs").value.replace(/^\s+|\s+$/g,"");
   registrar("ronda", { horario:ahoraHHMM(), observacion:obs, puntos:puntos });
-  batSel={}; tempSign={};
-  cerrarModales(); toast("\u2713 Ronda guardada","ok");
+  batSel={}; tempSign={}; estadoPunto={};
+  cerrarModales(); toast("\u2713 Ronda guardada completa","ok");
 }
 
 /* ---------------- init ---------------- */

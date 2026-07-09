@@ -3,17 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Defrost · Equipo 9</title>
+<title>Registro de descongelamiento y temperatura</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--fondo:#10161d;--panel:#1a2430;--borde:#2e3f52;--hielo:#7dd3fc;
+:root{--fondo:#10161d;--panel:#1a2430;--panel2:#212e3d;--borde:#2e3f52;
+--hielo:#7dd3fc;--hielo-dim:#38bdf8;
 --ok:#4ade80;--alerta:#fbbf24;--falla:#f87171;--texto:#e2e8f0;--dim:#8fa3b8}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--fondo);color:var(--texto);
 font:15px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;padding:16px;max-width:900px;margin:auto}
 h1{font-size:19px;margin-bottom:2px}
-h1 small{color:var(--hielo);font-size:12px;vertical-align:3px;margin-left:6px}
 .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+.barra{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+select,button{background:var(--panel);border:1px solid var(--borde);color:var(--texto);
+border-radius:9px;padding:9px 12px;font-size:14px;font-family:inherit}
+select{flex:1;min-width:150px}
+button.primario{background:#0c3b52;border-color:var(--hielo);color:var(--hielo);cursor:pointer}
 .tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
 .tarjeta{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:12px 14px}
 .tarjeta .lbl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)}
@@ -21,7 +26,8 @@ h1 small{color:var(--hielo);font-size:12px;vertical-align:3px;margin-left:6px}
 .tarjeta.alerta .val{color:var(--falla)}
 .tarjeta.bien .val{color:var(--ok)}
 .panel{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:14px;margin-bottom:16px}
-.panel h2{font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.panel h2{font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.panel h2 button{font-size:12px;padding:4px 10px}
 #eventos div{padding:8px 0;border-bottom:1px solid #223041;font-size:14px;display:flex;gap:10px}
 #eventos div:last-child{border:0}
 #eventos .cuando{color:var(--dim);font-family:ui-monospace,monospace;font-size:12.5px;flex:0 0 90px;padding-top:1px}
@@ -30,20 +36,87 @@ h1 small{color:var(--hielo);font-size:12px;vertical-align:3px;margin-left:6px}
 .ev-defrost_salteado{color:var(--falla);font-weight:700}
 .ev-arranque{color:var(--alerta)}
 #estado{color:var(--dim);font-size:13px;text-align:center;padding:8px}
-button{background:#0c3b52;border:1px solid var(--hielo);color:var(--hielo);
-border-radius:9px;padding:8px 16px;font-size:14px;cursor:pointer}
+
+/* configuración */
+#config{display:none}
+#config.abierto{display:block}
+.grilla-cfg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.campo label{display:block;font-size:12px;color:var(--dim);margin-bottom:4px}
+.campo label .tip{color:#5b7089;font-weight:400}
+.campo input{width:100%;background:#0d1319;border:1.5px solid var(--borde);
+border-radius:9px;color:var(--texto);font:600 17px ui-monospace,Menlo,monospace;
+text-align:center;padding:9px 4px;outline:none}
+.campo input:focus{border-color:var(--hielo-dim)}
+.presets{display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap}
+.presets button{font-size:12.5px;padding:6px 10px;cursor:pointer}
+#msjCfg{margin-top:10px;padding:9px;border-radius:8px;font-size:13.5px;display:none;text-align:center}
+#msjCfg.ok{display:block;background:#122a1c;color:var(--ok)}
+#msjCfg.mal{display:block;background:#3a1414;color:var(--falla)}
+.aviso-cfg{font-size:12.5px;color:var(--dim);margin-top:10px;line-height:1.5}
 </style>
 </head>
 <body>
 
-<h1>Monitor de Defrost <small>EQUIPO 9 · CÁMARA 2</small></h1>
-<p class="sub">Sensor ESP32 · se actualiza solo cada 60 segundos</p>
+<h1>Registro de descongelamiento y temperatura</h1>
+<p class="sub">Monitor por sensor ESP32 · se actualiza solo cada 60 segundos</p>
+
+<div class="barra">
+  <select id="selectorEquipo" onchange="cambiarEquipo()"></select>
+  <button onclick="cargar()">↻</button>
+  <button class="primario" onclick="toggleConfig()">⚙ Configurar</button>
+</div>
 
 <div class="tarjetas">
-  <div class="tarjeta"><div class="lbl">Temp. actual</div><div class="val" id="tAhora">—</div></div>
-  <div class="tarjeta" id="cardUlt"><div class="lbl">Último defrost</div><div class="val" id="tUlt" style="font-size:17px">—</div></div>
+  <div class="tarjeta"><div class="lbl">Temperatura actual</div><div class="val" id="tAhora">—</div></div>
+  <div class="tarjeta"><div class="lbl">Último descongelamiento</div><div class="val" id="tUlt" style="font-size:17px">—</div></div>
   <div class="tarjeta"><div class="lbl">Duración último</div><div class="val" id="tDur">—</div></div>
   <div class="tarjeta" id="cardSalt"><div class="lbl">Salteados (24 h)</div><div class="val" id="tSalt">—</div></div>
+</div>
+
+<div class="panel" id="config">
+  <h2>Configuración del sensor</h2>
+
+  <div style="margin-bottom:14px">
+    <div class="campo" style="margin-bottom:10px">
+      <label>Nombre del sensor / ubicación <span class="tip">(ej: Equipo 9, Cámara 4, Aire producción)</span></label>
+      <input id="cfg_equipo" placeholder="Equipo 9">
+    </div>
+  </div>
+
+  <div style="font-size:12px;color:var(--dim);margin-bottom:6px">Preset rápido:</div>
+  <div class="presets">
+    <button onclick="preset(-5,-12,8)">Cámara de frío (-25°C)</button>
+    <button onclick="preset(2,-2,6)">Cámara refrigerada (0°C)</button>
+    <button onclick="preset(20,15,0)">Aire acondicionado</button>
+    <button onclick="preset(30,27,0.1)">Prueba en escritorio</button>
+  </div>
+
+  <div class="grilla-cfg">
+    <div class="campo">
+      <label>Umbral de descongelamiento <span class="tip">(°C, dispara "inicio")</span></label>
+      <input id="cfg_defrost" inputmode="decimal">
+    </div>
+    <div class="campo">
+      <label>Umbral de operación <span class="tip">(°C, dispara "fin")</span></label>
+      <input id="cfg_op" inputmode="decimal">
+    </div>
+    <div class="campo">
+      <label>Ventana de alarma <span class="tip">(hs sin defrost = salteado, 0 = no alarma)</span></label>
+      <input id="cfg_ventana" inputmode="decimal">
+    </div>
+    <div class="campo">
+      <label>Muestreo <span class="tip">(segundos entre lecturas)</span></label>
+      <input id="cfg_muestreo" inputmode="numeric">
+    </div>
+    <div class="campo" style="grid-column:1/-1">
+      <label>Subida periódica de muestras <span class="tip">(segundos — los eventos se suben siempre al instante)</span></label>
+      <input id="cfg_log" inputmode="numeric">
+    </div>
+  </div>
+
+  <button class="primario" style="width:100%;margin-top:12px;padding:12px" onclick="guardarConfig()">Guardar configuración</button>
+  <div id="msjCfg"></div>
+  <p class="aviso-cfg">El sensor consulta su configuración al arrancar y cada 30 minutos. Para que tome los cambios ahora mismo, reiniciá el ESP32 (desenchufar y volver a enchufar).</p>
 </div>
 
 <div class="panel">
@@ -57,52 +130,65 @@ border-radius:9px;padding:8px 16px;font-size:14px;cursor:pointer}
 </div>
 
 <div id="estado">conectando…</div>
-<div style="text-align:center"><button onclick="cargar()">Actualizar ahora</button></div>
 
 <script>
-// ▼▼▼ PEGÁ ACÁ TU URL DEL APPS SCRIPT (la que termina en /exec) ▼▼▼
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2j7NKhgc6LCDuzx_OT7ybkkgvdqEkN8I2qppSrs8fZFG9ffpsK46FldHMnQiSvj5fzg/exec";
-// ▲▲▲───────────────────────────────────────────────────────────▲▲▲
-
 let grafico = null;
+let equipoActual = localStorage.getItem('defrost_equipo') || 'Equipo 9';
 
+// ------- selector de equipo -------
+async function cargarLista() {
+  try {
+    const r = await fetch(SCRIPT_URL + '?lista=1');
+    const d = await r.json();
+    const sel = document.getElementById('selectorEquipo');
+    sel.innerHTML = '';
+    (d.equipos || ['Equipo 9']).forEach(eq => {
+      const o = document.createElement('option');
+      o.value = eq; o.textContent = eq;
+      if (eq === equipoActual) o.selected = true;
+      sel.appendChild(o);
+    });
+  } catch (e) {}
+}
+function cambiarEquipo() {
+  equipoActual = document.getElementById('selectorEquipo').value;
+  localStorage.setItem('defrost_equipo', equipoActual);
+  cargar();
+}
+
+// ------- datos -------
 async function cargar() {
   const est = document.getElementById('estado');
   est.textContent = 'cargando…';
   try {
-    const r = await fetch(SCRIPT_URL + '?n=400');
+    const r = await fetch(SCRIPT_URL + '?n=400&equipo=' + encodeURIComponent(equipoActual));
     const d = await r.json();
     const filas = d.filas || [];
-    if (!filas.length) { est.textContent = 'sin datos todavía — prendé el ESP32'; return; }
+    if (!filas.length) { est.textContent = 'sin datos todavía para "'+equipoActual+'"'; return; }
     pintar(filas);
     est.textContent = 'actualizado ' + new Date().toLocaleTimeString('es-AR');
   } catch (e) {
-    est.textContent = 'error de conexión: ' + e.message +
-      ' — revisá que la URL esté pegada y el deploy sea "Cualquier usuario"';
+    est.textContent = 'error de conexión: ' + e.message;
   }
 }
 
 function pintar(filas) {
-  // --- tarjetas ---
   const ultTemp = [...filas].reverse().find(f => f.temp !== '' && f.temp !== null);
-  document.getElementById('tAhora').textContent =
-    ultTemp ? ultTemp.temp.toFixed(1) + ' °C' : '—';
-
+  document.getElementById('tAhora').textContent = ultTemp ? ultTemp.temp.toFixed(1) + ' °C' : '—';
   const fines = filas.filter(f => f.evento === 'defrost_fin');
   const ultFin = fines[fines.length - 1];
   document.getElementById('tUlt').textContent = ultFin ? ultFin.fecha : 'ninguno aún';
   document.getElementById('tDur').textContent =
     ultFin && ultFin.duracion_min !== '' ? ultFin.duracion_min + ' min' : '—';
-
   const hace24 = Date.now() - 24*3600*1000;
   const salt = filas.filter(f => f.evento === 'defrost_salteado' && f.ts > hace24).length;
   const cs = document.getElementById('cardSalt');
   document.getElementById('tSalt').textContent = salt;
   cs.className = 'tarjeta ' + (salt > 0 ? 'alerta' : 'bien');
 
-  // --- curva ---
   const muestras = filas.filter(f => f.temp !== '' && f.temp !== null);
-  const labels = muestras.map(f => f.fecha.slice(6));      // HH:mm:ss
+  const labels = muestras.map(f => f.fecha.slice(6));
   const temps  = muestras.map(f => f.temp);
   const puntos = muestras.map(f =>
     f.evento === 'defrost_inicio' ? '#7dd3fc' :
@@ -114,7 +200,8 @@ function pintar(filas) {
     type: 'line',
     data: { labels, datasets: [{
       data: temps, borderColor: '#7dd3fc', borderWidth: 2,
-      pointBackgroundColor: puntos, pointRadius: muestras.map((f,i)=>puntos[i]==='rgba(0,0,0,0)'?0:5),
+      pointBackgroundColor: puntos,
+      pointRadius: muestras.map((_,i)=>puntos[i]==='rgba(0,0,0,0)'?0:5),
       tension: .25, fill: false
     }]},
     options: {
@@ -127,26 +214,77 @@ function pintar(filas) {
     }
   });
 
-  // --- eventos ---
   const nombres = {
-    defrost_inicio: '🧊 Inició defrost',
-    defrost_fin: '✓ Terminó defrost',
-    defrost_salteado: '🔴 DEFROST SALTEADO',
+    defrost_inicio: '🧊 Inició descongelamiento',
+    defrost_fin: '✓ Terminó descongelamiento',
+    defrost_salteado: '🔴 DESCONGELAMIENTO SALTEADO',
     arranque: '⚡ Sensor arrancó',
     muestra: null
   };
   const evs = filas.filter(f => nombres[f.evento]).slice(-15).reverse();
   document.getElementById('eventos').innerHTML = evs.map(f => {
     let extra = '';
-    if (f.evento === 'defrost_fin')
-      extra = ` — pico ${f.temp_max}°C, duró ${f.duracion_min} min`;
+    if (f.evento === 'defrost_fin') extra = ` — pico ${f.temp_max}°C, duró ${f.duracion_min} min`;
     if (f.evento === 'defrost_salteado') extra = ` — ${f.detalle}`;
     return `<div><span class="cuando">${f.fecha}</span>` +
            `<span class="ev-${f.evento}">${nombres[f.evento]}${extra}</span></div>`;
   }).join('') || '<div style="color:#8fa3b8">sin eventos todavía</div>';
 }
 
-cargar();
+// ------- configuración -------
+async function toggleConfig() {
+  const p = document.getElementById('config');
+  p.classList.toggle('abierto');
+  if (p.classList.contains('abierto')) {
+    // cargar la config actual del equipo seleccionado
+    try {
+      const r = await fetch(SCRIPT_URL + '?config=' + encodeURIComponent(equipoActual));
+      const c = await r.json();
+      document.getElementById('cfg_equipo').value   = c.equipo || equipoActual;
+      document.getElementById('cfg_defrost').value  = c.temp_defrost;
+      document.getElementById('cfg_op').value       = c.temp_operacion;
+      document.getElementById('cfg_ventana').value  = c.ventana_h;
+      document.getElementById('cfg_muestreo').value = c.muestreo_s;
+      document.getElementById('cfg_log').value      = c.log_periodico_s;
+    } catch (e) {}
+  }
+}
+function preset(defrost, op, ventana) {
+  document.getElementById('cfg_defrost').value  = defrost;
+  document.getElementById('cfg_op').value       = op;
+  document.getElementById('cfg_ventana').value  = ventana;
+}
+async function guardarConfig() {
+  const msj = document.getElementById('msjCfg');
+  const body = {
+    accion: 'guardar_config',
+    equipo:          document.getElementById('cfg_equipo').value.trim(),
+    temp_defrost:    document.getElementById('cfg_defrost').value,
+    temp_operacion:  document.getElementById('cfg_op').value,
+    ventana_h:       document.getElementById('cfg_ventana').value,
+    muestreo_s:      document.getElementById('cfg_muestreo').value,
+    log_periodico_s: document.getElementById('cfg_log').value
+  };
+  if (!body.equipo) { msj.className='mal'; msj.textContent='Falta nombre del sensor'; return; }
+  msj.className=''; msj.textContent='guardando…'; msj.style.display='block';
+  try {
+    // fetch con redirect: Apps Script responde 302
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain'},   // evita preflight CORS
+      body: JSON.stringify(body)
+    });
+    msj.className='ok';
+    msj.textContent='✓ Configuración guardada. El sensor la va a tomar en el próximo arranque o en máx. 30 min.';
+    await cargarLista();     // por si es un equipo nuevo
+  } catch (e) {
+    msj.className='mal';
+    msj.textContent='Error: ' + e.message;
+  }
+}
+
+// ------- init -------
+(async () => { await cargarLista(); cargar(); })();
 setInterval(cargar, 60000);
 </script>
 </body>

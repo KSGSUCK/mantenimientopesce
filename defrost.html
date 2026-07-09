@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Defrost · Equipo 9</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--fondo:#10161d;--panel:#1a2430;--borde:#2e3f52;--hielo:#7dd3fc;
+--ok:#4ade80;--alerta:#fbbf24;--falla:#f87171;--texto:#e2e8f0;--dim:#8fa3b8}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--fondo);color:var(--texto);
+font:15px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;padding:16px;max-width:900px;margin:auto}
+h1{font-size:19px;margin-bottom:2px}
+h1 small{color:var(--hielo);font-size:12px;vertical-align:3px;margin-left:6px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.tarjeta{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:12px 14px}
+.tarjeta .lbl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)}
+.tarjeta .val{font:700 24px ui-monospace,Menlo,monospace;margin-top:3px}
+.tarjeta.alerta .val{color:var(--falla)}
+.tarjeta.bien .val{color:var(--ok)}
+.panel{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:14px;margin-bottom:16px}
+.panel h2{font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+#eventos div{padding:8px 0;border-bottom:1px solid #223041;font-size:14px;display:flex;gap:10px}
+#eventos div:last-child{border:0}
+#eventos .cuando{color:var(--dim);font-family:ui-monospace,monospace;font-size:12.5px;flex:0 0 90px;padding-top:1px}
+.ev-defrost_fin{color:var(--ok)}
+.ev-defrost_inicio{color:var(--hielo)}
+.ev-defrost_salteado{color:var(--falla);font-weight:700}
+.ev-arranque{color:var(--alerta)}
+#estado{color:var(--dim);font-size:13px;text-align:center;padding:8px}
+button{background:#0c3b52;border:1px solid var(--hielo);color:var(--hielo);
+border-radius:9px;padding:8px 16px;font-size:14px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<h1>Monitor de Defrost <small>EQUIPO 9 · CÁMARA 2</small></h1>
+<p class="sub">Sensor ESP32 · se actualiza solo cada 60 segundos</p>
+
+<div class="tarjetas">
+  <div class="tarjeta"><div class="lbl">Temp. actual</div><div class="val" id="tAhora">—</div></div>
+  <div class="tarjeta" id="cardUlt"><div class="lbl">Último defrost</div><div class="val" id="tUlt" style="font-size:17px">—</div></div>
+  <div class="tarjeta"><div class="lbl">Duración último</div><div class="val" id="tDur">—</div></div>
+  <div class="tarjeta" id="cardSalt"><div class="lbl">Salteados (24 h)</div><div class="val" id="tSalt">—</div></div>
+</div>
+
+<div class="panel">
+  <h2>Curva de temperatura</h2>
+  <canvas id="grafico" height="120"></canvas>
+</div>
+
+<div class="panel">
+  <h2>Últimos eventos</h2>
+  <div id="eventos"></div>
+</div>
+
+<div id="estado">conectando…</div>
+<div style="text-align:center"><button onclick="cargar()">Actualizar ahora</button></div>
+
+<script>
+// ▼▼▼ PEGÁ ACÁ TU URL DEL APPS SCRIPT (la que termina en /exec) ▼▼▼
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2j7NKhgc6LCDuzx_OT7ybkkgvdqEkN8I2qppSrs8fZFG9ffpsK46FldHMnQiSvj5fzg/exec";
+// ▲▲▲───────────────────────────────────────────────────────────▲▲▲
+
+let grafico = null;
+
+async function cargar() {
+  const est = document.getElementById('estado');
+  est.textContent = 'cargando…';
+  try {
+    const r = await fetch(SCRIPT_URL + '?n=400');
+    const d = await r.json();
+    const filas = d.filas || [];
+    if (!filas.length) { est.textContent = 'sin datos todavía — prendé el ESP32'; return; }
+    pintar(filas);
+    est.textContent = 'actualizado ' + new Date().toLocaleTimeString('es-AR');
+  } catch (e) {
+    est.textContent = 'error de conexión: ' + e.message +
+      ' — revisá que la URL esté pegada y el deploy sea "Cualquier usuario"';
+  }
+}
+
+function pintar(filas) {
+  // --- tarjetas ---
+  const ultTemp = [...filas].reverse().find(f => f.temp !== '' && f.temp !== null);
+  document.getElementById('tAhora').textContent =
+    ultTemp ? ultTemp.temp.toFixed(1) + ' °C' : '—';
+
+  const fines = filas.filter(f => f.evento === 'defrost_fin');
+  const ultFin = fines[fines.length - 1];
+  document.getElementById('tUlt').textContent = ultFin ? ultFin.fecha : 'ninguno aún';
+  document.getElementById('tDur').textContent =
+    ultFin && ultFin.duracion_min !== '' ? ultFin.duracion_min + ' min' : '—';
+
+  const hace24 = Date.now() - 24*3600*1000;
+  const salt = filas.filter(f => f.evento === 'defrost_salteado' && f.ts > hace24).length;
+  const cs = document.getElementById('cardSalt');
+  document.getElementById('tSalt').textContent = salt;
+  cs.className = 'tarjeta ' + (salt > 0 ? 'alerta' : 'bien');
+
+  // --- curva ---
+  const muestras = filas.filter(f => f.temp !== '' && f.temp !== null);
+  const labels = muestras.map(f => f.fecha.slice(6));      // HH:mm:ss
+  const temps  = muestras.map(f => f.temp);
+  const puntos = muestras.map(f =>
+    f.evento === 'defrost_inicio' ? '#7dd3fc' :
+    f.evento === 'defrost_fin'    ? '#4ade80' :
+    f.evento === 'defrost_salteado' ? '#f87171' : 'rgba(0,0,0,0)');
+
+  if (grafico) grafico.destroy();
+  grafico = new Chart(document.getElementById('grafico'), {
+    type: 'line',
+    data: { labels, datasets: [{
+      data: temps, borderColor: '#7dd3fc', borderWidth: 2,
+      pointBackgroundColor: puntos, pointRadius: muestras.map((f,i)=>puntos[i]==='rgba(0,0,0,0)'?0:5),
+      tension: .25, fill: false
+    }]},
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8fa3b8', maxTicksLimit: 8 }, grid: { color: '#223041' } },
+        y: { ticks: { color: '#8fa3b8' }, grid: { color: '#223041' },
+             title: { display: true, text: '°C', color: '#8fa3b8' } }
+      }
+    }
+  });
+
+  // --- eventos ---
+  const nombres = {
+    defrost_inicio: '🧊 Inició defrost',
+    defrost_fin: '✓ Terminó defrost',
+    defrost_salteado: '🔴 DEFROST SALTEADO',
+    arranque: '⚡ Sensor arrancó',
+    muestra: null
+  };
+  const evs = filas.filter(f => nombres[f.evento]).slice(-15).reverse();
+  document.getElementById('eventos').innerHTML = evs.map(f => {
+    let extra = '';
+    if (f.evento === 'defrost_fin')
+      extra = ` — pico ${f.temp_max}°C, duró ${f.duracion_min} min`;
+    if (f.evento === 'defrost_salteado') extra = ` — ${f.detalle}`;
+    return `<div><span class="cuando">${f.fecha}</span>` +
+           `<span class="ev-${f.evento}">${nombres[f.evento]}${extra}</span></div>`;
+  }).join('') || '<div style="color:#8fa3b8">sin eventos todavía</div>';
+}
+
+cargar();
+setInterval(cargar, 60000);
+</script>
+</body>
+</html>

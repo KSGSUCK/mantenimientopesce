@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PMOS — Gerencia</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#0E1620;color:#E8F0F6;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+/* PIN */
+#scr-pin{max-width:320px;margin:16vh auto 0;text-align:center;padding:0 20px}
+#scr-pin .logo{font-size:13px;letter-spacing:4px;color:#4FD8E0;font-weight:700}
+#scr-pin h1{font-size:20px;margin:8px 0 4px}
+#scr-pin p{color:#7E93A8;font-size:13px}
+#scr-pin input{width:100%;background:#16222F;border:1px solid #24364A;border-radius:12px;color:#E8F0F6;
+  font-size:24px;text-align:center;letter-spacing:8px;padding:14px;margin-top:18px;-webkit-appearance:none}
+#scr-pin button{width:100%;margin-top:12px;border:none;border-radius:12px;padding:15px;
+  background:#4FD8E0;color:#06121a;font-size:16px;font-weight:800}
+#pin-err{color:#FF6B7A;font-size:13px;height:18px;margin-top:8px}
+
+/* HEADER */
+#panel{display:none}
+.topbar{position:sticky;top:0;z-index:10;background:rgba(14,22,32,.95);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-bottom:1px solid #24364A;padding:14px 18px;padding-top:calc(14px + env(safe-area-inset-top))}
+.topbar .fila{display:flex;justify-content:space-between;align-items:center;max-width:760px;margin:0 auto}
+.topbar b{font-size:16px}
+.topbar b span{color:#4FD8E0;font-size:10px;letter-spacing:2px;display:block;font-weight:700}
+.topbar button{background:none;border:1px solid #24364A;border-radius:10px;color:#7E93A8;padding:8px 13px;font-size:13px}
+#actualizado{font-size:10.5px;color:#56697C;text-align:center;padding:6px 0 0}
+
+/* KPIs */
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.kpi{background:#16222F;border:1px solid #24364A;border-radius:14px;padding:12px 8px;text-align:center}
+.kpi b{font-size:28px;display:block;line-height:1.1;color:#4FD8E0}
+.kpi.rojo b{color:#FF6B7A}
+.kpi.ambar b{color:#F2B33D}
+.kpi small{color:#7E93A8;font-size:10px;text-transform:uppercase;letter-spacing:.4px;line-height:1.2;display:block;margin-top:3px}
+@media(max-width:520px){.kpi b{font-size:23px}}
+
+/* TABS */
+.tabs{display:flex;gap:6px;margin:14px 0 4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{flex:1;min-width:max-content;background:#16222F;border:1px solid #24364A;color:#7E93A8;
+  padding:12px 14px;border-radius:12px;font-size:14px;font-weight:700;text-align:center;white-space:nowrap}
+.tab.on{background:#1D2E3F;color:#E8F0F6;border-color:#4FD8E0;box-shadow:inset 0 0 0 1px #4FD8E0}
+.vista{display:none;padding-top:10px}
+.vista.on{display:block;animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* CARDS */
+.card{background:#16222F;border:1px solid #24364A;border-radius:13px;padding:12px 14px;margin-bottom:8px}
+.card .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card .quien{font-weight:800;font-size:14px}
+.card .hora{font-size:11px;color:#7E93A8}
+.card .eq{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#4FD8E0;font-weight:700;margin-top:2px}
+.card .txt{font-size:13.5px;line-height:1.4;margin-top:4px}
+.card .txt b{color:#C9D6E0}
+.card .meta{font-size:11.5px;color:#7E93A8;margin-top:5px}
+.pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.5px;border-radius:20px;padding:3px 9px;text-transform:uppercase}
+.pill.def{background:rgba(70,214,140,.15);color:#46D68C}
+.pill.prov{background:rgba(242,179,61,.15);color:#F2B33D}
+.pill.urg{background:#FF4D5E;color:#fff}
+.pill.encurso{background:rgba(242,179,61,.15);color:#F2B33D}
+.pill.pend{background:rgba(79,216,224,.15);color:#4FD8E0}
+.age{display:inline-block;font-size:10.5px;font-weight:800;border-radius:20px;padding:3px 9px}
+.age.ok{background:rgba(79,216,224,.13);color:#4FD8E0}
+.age.pronto{background:rgba(242,179,61,.16);color:#F2B33D}
+.age.venc{background:#FF4D5E;color:#fff}
+.card.vencida{border-color:#FF4D5E;background:rgba(255,77,94,.06)}
+.card.alta{border-left:4px solid #FF6B7A}
+
+.sech{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#56697C;font-weight:800;margin:18px 2px 8px}
+.vacio{color:#56697C;font-size:14px;text-align:center;padding:26px 10px;line-height:1.5}
+
+table.mini{width:100%;border-collapse:collapse;background:#16222F;border-radius:13px;overflow:hidden}
+table.mini th{background:#1D2E3F;color:#7E93A8;font-size:10px;text-transform:uppercase;letter-spacing:.6px;
+  text-align:left;padding:9px 12px}
+table.mini td{padding:9px 12px;border-top:1px solid #1F3043;font-size:13px}
+table.mini td.n{text-align:right;font-weight:800;color:#4FD8E0}
+
+.frio-item{display:flex;justify-content:space-between;align-items:center;background:#16222F;
+  border:1px solid #24364A;border-radius:11px;padding:11px 13px;margin-bottom:7px;font-size:13.5px}
+.frio-item .pct{font-weight:800;color:#FF6B7A}
+.obs-card{background:rgba(79,216,224,.06);border:1px solid rgba(79,216,224,.25);border-radius:11px;
+  padding:11px 13px;margin-bottom:7px;font-size:13px;line-height:1.45}
+.obs-card .de{font-size:11px;color:#7E93A8;margin-top:4px}
+#cargando{text-align:center;color:#56697C;padding:40px 0;font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- ===== CONFIG ===== -->
+<script>
+var CONFIG = {
+  /* misma URL /exec del sistema */
+  SHEET_URL: "https://script.google.com/macros/s/AKfycbxfsE3m6JfCYspGSSI9SK8T1CgjoGzubzzvPSM3DB-v7Huf9haZUq5TG0VagDYRANIB/exec",
+  /* refresco automático en minutos */
+  REFRESCO_MIN: 3
+};
+</script>
+
+<!-- ===== PIN ===== -->
+<div id="scr-pin">
+  <div class="logo">P M O S</div>
+  <h1>Panel de gesti&oacute;n</h1>
+  <p>Pesce Frutos de Mar &middot; Mantenimiento</p>
+  <input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN">
+  <div id="pin-err"></div>
+  <button onclick="entrar()">Entrar</button>
+</div>
+
+<!-- ===== PANEL ===== -->
+<div id="panel">
+  <div class="topbar">
+    <div class="fila">
+      <b><span>PMOS &middot; GESTI&Oacute;N</span>Mantenimiento</b>
+      <button onclick="cargar(true)">&#8635; Actualizar</button>
+    </div>
+    <div id="actualizado"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="kpis">
+      <div class="kpi"><b id="k-hoy">–</b><small>Trabajos<br>hoy</small></div>
+      <div class="kpi ambar"><b id="k-pend">–</b><small>Tareas<br>pendientes</small></div>
+      <div class="kpi rojo"><b id="k-urg">–</b><small>Urgentes /<br>vencidas</small></div>
+      <div class="kpi ambar"><b id="k-rep">–</b><small>Esperan<br>repuesto</small></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab on" data-v="hoy" onclick="verTab(this)">📊 Hoy</div>
+      <div class="tab" data-v="pend" onclick="verTab(this)">📋 Pendientes</div>
+      <div class="tab" data-v="rep" onclick="verTab(this)">📦 Repuestos</div>
+      <div class="tab" data-v="frio" onclick="verTab(this)">❄️ Planta</div>
+    </div>
+
+    <div id="cargando">Cargando datos&hellip;</div>
+
+    <div class="vista" id="v-hoy">
+      <div id="lista-hoy"></div>
+      <div class="sech">Actividad &uacute;ltimos 7 d&iacute;as</div>
+      <table class="mini"><thead><tr><th>T&eacute;cnico</th><th style="text-align:right">Trabajos</th><th style="text-align:right">Horas</th></tr></thead>
+      <tbody id="tabla-7d"></tbody></table>
+    </div>
+
+    <div class="vista" id="v-pend"><div id="lista-pend"></div></div>
+    <div class="vista" id="v-rep"><div id="lista-rep"></div></div>
+
+    <div class="vista" id="v-frio">
+      <div class="sech" style="margin-top:4px">&Uacute;ltima ronda</div>
+      <div class="card" id="frio-ronda"><div class="txt">—</div></div>
+      <div class="sech">Equipos no medidos hoy</div>
+      <div id="frio-fs"></div>
+      <div class="sech">Desbalances de hoy (&ge; 30%)</div>
+      <div id="frio-desb"></div>
+      <div class="sech">Novedades de ronda (hoy)</div>
+      <div id="frio-obs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+function $(id){ return document.getElementById(id); }
+var PIN="";
+
+function entrar(){
+  PIN = $("pin").value;
+  if(!PIN){ $("pin-err").textContent="Ingres\u00e1 el PIN"; return; }
+  $("pin-err").textContent="";
+  cargar(true);
+}
+$("pin").addEventListener("keyup", function(e){ if(e.key==="Enter") entrar(); });
+
+function verTab(el){
+  var tabs=document.querySelectorAll(".tab"), i;
+  for(i=0;i<tabs.length;i++) tabs[i].className="tab";
+  el.className="tab on";
+  var vs=document.querySelectorAll(".vista");
+  for(i=0;i<vs.length;i++) vs[i].className="vista";
+  $("v-"+el.getAttribute("data-v")).className="vista on";
+}
+
+var timer=null;
+function cargar(manual){
+  if(!CONFIG.SHEET_URL){ alert("Falta la URL en CONFIG"); return; }
+  var x=new XMLHttpRequest();
+  x.open("GET", CONFIG.SHEET_URL+"?action=getGerencia&pin="+encodeURIComponent(PIN)+"&ts="+Date.now(), true);
+  x.timeout=30000;
+  x.onload=function(){
+    var r;
+    try{ r=JSON.parse(x.responseText); }catch(e){ $("pin-err").textContent="Error de conexi\u00f3n"; return; }
+    if(r.error==="pin"){ $("pin-err").textContent="PIN incorrecto"; return; }
+    $("scr-pin").style.display="none";
+    $("panel").style.display="block";
+    $("cargando").style.display="none";
+    render(r);
+    var d=new Date();
+    $("actualizado").textContent="Actualizado "+two(d.getHours())+":"+two(d.getMinutes())+
+      " \u00b7 se refresca solo cada "+CONFIG.REFRESCO_MIN+" min";
+    if(!timer) timer=setInterval(function(){ cargar(false); }, CONFIG.REFRESCO_MIN*60000);
+  };
+  x.onerror=function(){ $("pin-err").textContent="Sin conexi\u00f3n"; };
+  x.send();
+}
+function two(n){ return (n<10?"0":"")+n; }
+function esc(s){ return String(s==null?"":s).replace(/</g,"&lt;"); }
+
+function chipEdad(t){
+  if(t.dias_restantes!==null && t.dias_restantes!==undefined){
+    if(t.dias_restantes<0) return "<span class='age venc'>\u26a0 VENCIDA "+Math.abs(t.dias_restantes)+" d</span>";
+    if(t.dias_restantes===0) return "<span class='age venc'>VENCE HOY</span>";
+    if(t.dias_restantes<=2) return "<span class='age pronto'>quedan "+t.dias_restantes+" d</span>";
+    return "<span class='age ok'>quedan "+t.dias_restantes+" d</span>";
+  }
+  if(t.dias_abierta>=7) return "<span class='age pronto'>hace "+t.dias_abierta+" d</span>";
+  return "<span class='age ok'>hace "+t.dias_abierta+" d</span>";
+}
+
+function render(r){
+  // KPIs
+  $("k-hoy").textContent = r.kpis.trabajosHoy;
+  $("k-pend").textContent = r.kpis.pendientes;
+  $("k-urg").textContent = r.kpis.urgentes;
+  $("k-rep").textContent = r.kpis.repuestos;
+
+  // HOY
+  var h="", i, t;
+  if(r.hoy.length===0) h="<div class='vacio'>Todav\u00eda no hay trabajos cargados hoy.</div>";
+  for(i=0;i<r.hoy.length;i++){ t=r.hoy[i];
+    h+="<div class='card'><div class='top'><span class='quien'>"+esc(t.tecnico)+"</span><span class='hora mono'>"+esc(t.inicio)+"\u2013"+esc(t.fin)+" \u00b7 "+t.dur+" min</span></div>";
+    h+="<div class='eq'>"+esc(t.equipo)+"</div>";
+    h+="<div class='txt'><b>"+esc(t.que_hiciste)+"</b><br>\u2192 "+esc(t.como_quedo)+"</div>";
+    h+="<div class='meta'><span class='pill "+(t.cierre==="definitivo"?"def":"prov")+"'>"+(t.cierre==="definitivo"?"Definitivo":"Provisorio")+"</span>"+(t.repuesto?" \u00b7 Repuesto: "+esc(t.repuesto):"")+"</div></div>";
+  }
+  $("lista-hoy").innerHTML=h;
+
+  h="";
+  for(i=0;i<r.actividad7.length;i++){ t=r.actividad7[i];
+    h+="<tr><td>"+esc(t.tecnico)+"</td><td class='n'>"+t.trabajos+"</td><td class='n'>"+(t.min/60).toFixed(1)+"</td></tr>";
+  }
+  $("tabla-7d").innerHTML=h||"<tr><td colspan='3' style='color:#56697C'>Sin datos</td></tr>";
+
+  // PENDIENTES
+  h="";
+  if(r.pendientes.length===0) h="<div class='vacio'>No hay tareas pendientes. \ud83c\udf89</div>";
+  for(i=0;i<r.pendientes.length;i++){ t=r.pendientes[i];
+    var venc=(t.dias_restantes!==null&&t.dias_restantes!==undefined&&t.dias_restantes<0);
+    h+="<div class='card"+(venc?" vencida":"")+(t.prioridad==="Alta"?" alta":"")+"'>";
+    h+="<div class='top'><span class='eq'>"+esc(t.sector)+"</span>"+chipEdad(t)+"</div>";
+    h+="<div class='txt'>"+esc(t.desc)+"</div>";
+    h+="<div class='meta'>"+(t.estado==="En curso"?"<span class='pill encurso'>La tiene "+esc(t.tomada_por)+"</span>":"<span class='pill pend'>Sin tomar</span>")+(t.prioridad==="Alta"?" <span class='pill urg'>Alta</span>":"")+"</div></div>";
+  }
+  $("lista-pend").innerHTML=h;
+
+  // REPUESTOS
+  h="";
+  if(r.repuestos.length===0) h="<div class='vacio'>Nada esperando repuestos.</div>";
+  for(i=0;i<r.repuestos.length;i++){ t=r.repuestos[i];
+    h+="<div class='card alta'><div class='top'><span class='eq'>"+esc(t.sector)+"</span><span class='age pronto'>hace "+t.dias_abierta+" d</span></div>";
+    h+="<div class='txt'><b>Falta: "+esc(t.repuesto)+"</b><br>"+esc(t.desc)+"</div>";
+    h+="<div class='meta'>Lo pidi\u00f3 "+esc(t.tomada_por||t.de)+"</div></div>";
+  }
+  $("lista-rep").innerHTML=h;
+
+  // PLANTA / FRIO
+  $("frio-ronda").innerHTML = r.frio.ultima
+    ? "<div class='txt'><b>"+esc(r.frio.ultima.cuando)+"</b> \u00b7 la hizo "+esc(r.frio.ultima.tecnico)+" \u00b7 "+r.frio.ultima.puntos+" puntos</div>"
+    : "<div class='txt' style='color:#7E93A8'>Sin rondas registradas.</div>";
+
+  h="";
+  if(r.frio.noMedidos.length===0) h="<div class='vacio'>Todos los equipos medidos hoy.</div>";
+  for(i=0;i<r.frio.noMedidos.length;i++){ t=r.frio.noMedidos[i];
+    var et={fuera_servicio:"FUERA DE SERVICIO",apagado:"APAGADO",sin_acceso:"SIN ACCESO"}[t.estado]||t.estado;
+    h+="<div class='frio-item'><span>"+esc(t.punto)+" <span style='color:#56697C;font-size:11px'>("+esc(t.seccion)+")</span></span><span class='pill prov'>"+et+"</span></div>";
+  }
+  $("frio-fs").innerHTML=h;
+
+  h="";
+  if(r.frio.desbalances.length===0) h="<div class='vacio'>Sin desbalances cr\u00edticos hoy.</div>";
+  for(i=0;i<r.frio.desbalances.length;i++){ t=r.frio.desbalances[i];
+    h+="<div class='frio-item'><span>"+esc(t.punto)+"</span><span class='pct mono'>"+t.pct+"%</span></div>";
+  }
+  $("frio-desb").innerHTML=h;
+
+  h="";
+  if(r.frio.obs.length===0) h="<div class='vacio'>Sin novedades anotadas hoy.</div>";
+  for(i=0;i<r.frio.obs.length;i++){ t=r.frio.obs[i];
+    h+="<div class='obs-card'>"+esc(t.texto)+"<div class='de'>"+esc(t.tecnico)+" \u00b7 "+esc(t.hora)+"</div></div>";
+  }
+  $("frio-obs").innerHTML=h;
+}
+</script>
+</body>
+</html>

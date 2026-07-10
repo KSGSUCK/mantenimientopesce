@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pedidos · Pesce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --marino:#0B1B26;      /* header, cámara oscura */
+  --hielo:#F2F5F7;       /* fondo */
+  --acero:#22313C;       /* texto principal */
+  --acero-2:#5B6E7A;     /* texto secundario */
+  --frio:#0E7C9C;        /* acento principal */
+  --frio-suave:#DDEEF4;
+  --ambar:#D97E00;
+  --ambar-suave:#FBEEDB;
+  --ok:#1D8A4E;
+  --ok-suave:#DFF2E7;
+  --rojo:#C23B33;
+  --rojo-suave:#F9E4E2;
+  --gris-suave:#E4EAEE;
+  --card:#FFFFFF;
+  --radio:14px;
+  --sombra:0 1px 3px rgba(11,27,38,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Barlow',system-ui,-apple-system,sans-serif;background:var(--hielo);color:var(--acero);
+  padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+h1,h2,h3,.disp{font-family:'Barlow Condensed','Barlow',sans-serif;letter-spacing:.02em}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input,select,textarea{font-family:inherit;font-size:16px}
+
+/* ---------- header ---------- */
+header{background:var(--marino);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;
+  position:sticky;top:0;z-index:30}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+header h1{font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+header h1 span{color:#7FCADF;font-weight:500}
+.hbtns{display:flex;gap:8px}
+.hbtn{background:rgba(255,255,255,.12);border-radius:10px;padding:8px 12px;color:#fff;
+  font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#4c5a63;display:inline-block}
+.sync-dot.on{background:#3BD07F}
+.sync-dot.err{background:#E0564C}
+.quien{margin-top:8px;font-size:13px;color:#9DB2BE}
+.quien b{color:#fff;font-weight:600}
+
+/* ---------- KPIs ---------- */
+.kpis{display:flex;gap:10px;overflow-x:auto;padding:14px 16px 4px;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none}
+.kpis::-webkit-scrollbar{display:none}
+.kpi{min-width:118px;background:var(--card);border-radius:var(--radio);box-shadow:var(--sombra);
+  padding:12px 14px;flex-shrink:0;border-top:3px solid var(--frio)}
+.kpi.warn{border-top-color:var(--ambar)}
+.kpi.bad{border-top-color:var(--rojo)}
+.kpi.ok{border-top-color:var(--ok)}
+.kpi .n{font-family:'Barlow Condensed';font-size:32px;font-weight:700;line-height:1;
+  font-variant-numeric:tabular-nums}
+.kpi .l{font-size:11.5px;color:var(--acero-2);margin-top:4px;text-transform:uppercase;
+  letter-spacing:.05em;font-weight:600}
+
+/* ---------- filtros ---------- */
+.filtros{padding:10px 16px 4px;position:sticky;top:0;z-index:20}
+.busca{width:100%;padding:11px 14px;border:1px solid var(--gris-suave);border-radius:12px;
+  background:var(--card);color:var(--acero);outline:none}
+.busca:focus{border-color:var(--frio)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:7px 14px;border-radius:999px;background:var(--card);
+  border:1px solid var(--gris-suave);font-size:13.5px;font-weight:600;color:var(--acero-2)}
+.chip.act{background:var(--marino);color:#fff;border-color:var(--marino)}
+.chip .cnt{opacity:.65;font-weight:500}
+
+/* ---------- lista ---------- */
+.lista{padding:6px 16px}
+.dia-sep{font-family:'Barlow Condensed';font-size:14px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--acero-2);margin:14px 2px 8px}
+.pedido{background:var(--card);border-radius:var(--radio);box-shadow:var(--sombra);
+  padding:14px;margin-bottom:10px;position:relative}
+.p-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.p-desc{font-weight:600;font-size:16px;line-height:1.3;padding-right:4px}
+.edad{flex-shrink:0;font-family:'Barlow Condensed';font-weight:700;font-size:15px;
+  padding:4px 10px;border-radius:8px;font-variant-numeric:tabular-nums;text-align:center;line-height:1.1}
+.edad small{display:block;font-size:9px;font-weight:600;letter-spacing:.08em;opacity:.8}
+.edad.e0{background:var(--frio-suave);color:var(--frio)}
+.edad.e1{background:var(--gris-suave);color:var(--acero-2)}
+.edad.e2{background:var(--ambar-suave);color:var(--ambar)}
+.edad.e3{background:var(--rojo-suave);color:var(--rojo)}
+.p-meta{font-size:13px;color:var(--acero-2);margin-top:5px}
+.p-meta b{color:var(--acero);font-weight:600}
+.p-coment{font-size:13px;color:var(--acero-2);margin-top:6px;font-style:italic}
+.p-row{display:flex;gap:8px;margin-top:11px;align-items:center;flex-wrap:wrap}
+.estado{padding:6px 13px;border-radius:999px;font-size:13px;font-weight:700;
+  display:inline-flex;align-items:center;gap:5px}
+.estado::after{content:'▾';font-size:10px;opacity:.7}
+.est-pendiente{background:var(--ambar-suave);color:var(--ambar)}
+.est-presupuestado{background:var(--frio-suave);color:var(--frio)}
+.est-aprobado{background:#E4E1F7;color:#5B4FBF}
+.est-comprado{background:#DCF0F5;color:#0B6E8A}
+.est-recibido{background:var(--ok-suave);color:var(--ok)}
+.est-cancelado{background:var(--gris-suave);color:var(--acero-2)}
+.est-otro{background:var(--gris-suave);color:var(--acero-2)}
+.p-link{margin-left:auto;font-size:13px;font-weight:600;color:var(--frio);
+  padding:6px 10px;border-radius:8px;background:var(--frio-suave);text-decoration:none}
+.p-importe{font-family:'Barlow Condensed';font-weight:700;font-size:16px;color:var(--acero);
+  font-variant-numeric:tabular-nums}
+.vacio{text-align:center;color:var(--acero-2);padding:50px 20px;font-size:15px}
+
+/* ---------- FAB + acciones ---------- */
+.fab-bar{position:fixed;bottom:0;left:0;right:0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));
+  display:flex;gap:10px;background:linear-gradient(transparent,var(--hielo) 40%);z-index:25}
+.fab{flex:1;background:var(--frio);color:#fff;border-radius:14px;padding:15px;
+  font-family:'Barlow Condensed';font-size:19px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;box-shadow:0 4px 14px rgba(14,124,156,.35)}
+.fab:active{transform:scale(.98)}
+.fab.wa{flex:0 0 auto;background:#1FA855;box-shadow:0 4px 14px rgba(31,168,85,.3);padding:15px 18px}
+
+/* ---------- sheets (modales) ---------- */
+.velo{position:fixed;inset:0;background:rgba(11,27,38,.5);z-index:40;opacity:0;
+  pointer-events:none;transition:opacity .2s}
+.velo.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);z-index:50;
+  border-radius:20px 20px 0 0;padding:8px 18px calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.3,1);
+  max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet.on{transform:translateY(0)}
+.grip{width:40px;height:4px;background:var(--gris-suave);border-radius:4px;margin:6px auto 14px}
+.sheet h2{font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px}
+.campo{margin-bottom:13px}
+.campo label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--acero-2);margin-bottom:5px}
+.campo label .req{color:var(--rojo)}
+.campo input,.campo select,.campo textarea{width:100%;padding:12px 13px;
+  border:1px solid var(--gris-suave);border-radius:11px;background:var(--hielo);outline:none;
+  color:var(--acero);appearance:none;-webkit-appearance:none}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--frio);background:#fff}
+.campo textarea{min-height:64px;resize:vertical}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-p{width:100%;background:var(--frio);color:#fff;border-radius:13px;padding:15px;
+  font-family:'Barlow Condensed';font-size:19px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.04em;margin-top:6px}
+.btn-p:disabled{opacity:.5}
+.btn-s{width:100%;background:var(--gris-suave);color:var(--acero);border-radius:13px;
+  padding:13px;font-weight:600;margin-top:9px}
+.est-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.est-opt{padding:14px 10px;border-radius:12px;font-weight:700;font-size:15px;text-align:center;
+  border:2px solid transparent}
+.est-opt.sel{border-color:var(--marino)}
+.sheet .p-desc{margin-bottom:12px;color:var(--acero-2);font-weight:500;font-size:14px}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(20px);background:var(--marino);color:#fff;
+  padding:12px 20px;border-radius:12px;font-weight:600;font-size:14.5px;z-index:60;
+  opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;max-width:90vw;
+  overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:g .7s linear infinite;vertical-align:-3px}
+@keyframes g{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <h1>Pedidos <span>· Pesce</span></h1>
+    <div class="hbtns">
+      <button class="hbtn" id="btnSync" onclick="cargar(true)">
+        <span class="sync-dot" id="syncDot"></span><span id="syncTxt">Sync</span>
+      </button>
+    </div>
+  </div>
+  <div class="quien">Panel de compras · Cargás como <b id="quienNombre">Francisco</b></div>
+</header>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="filtros">
+  <input class="busca" id="busca" placeholder="Buscar descripción, proveedor, comentario…" oninput="render()">
+  <div class="chips" id="chipsEstado"></div>
+</div>
+
+<div class="lista" id="lista"></div>
+
+<div class="fab-bar">
+  <button class="fab" onclick="abrirNuevo()">＋ Nuevo pedido</button>
+  <button class="fab wa" onclick="waPendientes()" title="WhatsApp a Germán">📲</button>
+</div>
+
+<!-- ===== sheet: nuevo pedido ===== -->
+<div class="velo" id="velo" onclick="cerrarSheets()"></div>
+<div class="sheet" id="shNuevo">
+  <div class="grip"></div>
+  <h2 class="disp">Nuevo pedido</h2>
+  <div class="dos">
+    <div class="campo"><label>Solicita</label>
+      <input id="fSolicita" readonly style="background:var(--gris-suave);color:var(--acero-2)"></div>
+    <div class="campo"><label>Fecha</label>
+      <input type="date" id="fFecha"></div>
+  </div>
+  <div class="campo"><label>Descripción <span class="req">*</span></label>
+    <input id="fDesc" placeholder="Ej: Candado bronce 40mm"></div>
+  <div class="dos">
+    <div class="campo"><label>Cantidad</label>
+      <input id="fCant" placeholder="Ej: 2 unidades"></div>
+    <div class="campo"><label>Categoría</label>
+      <select id="fCat"></select></div>
+  </div>
+  <div class="campo"><label>Proveedor</label>
+    <input id="fProv" list="dlProv" placeholder="Ej: MP (MercadoLibre)">
+    <datalist id="dlProv"></datalist></div>
+  <div class="campo"><label>Link (MercadoLibre u otro)</label>
+    <input id="fLink" inputmode="url" placeholder="https://…"></div>
+  <div class="campo"><label>Comentario / referencia</label>
+    <textarea id="fComent" placeholder="Para qué equipo, urgencia, contexto…"></textarea></div>
+  <button class="btn-p" id="btnGuardar" onclick="guardarNuevo()">Guardar pedido</button>
+  <button class="btn-s" onclick="cerrarSheets()">Cancelar</button>
+</div>
+
+<!-- ===== sheet: cambiar estado ===== -->
+<div class="sheet" id="shEstado">
+  <div class="grip"></div>
+  <h2 class="disp">Estado del pedido</h2>
+  <div class="p-desc" id="estDesc"></div>
+  <div class="est-grid" id="estGrid"></div>
+  <div class="campo"><label>Observación (opcional, pisa el comentario)</label>
+    <input id="estComent" placeholder="Ej: llegó incompleto, esperando factura…"></div>
+  <button class="btn-p" id="btnEstado" onclick="guardarEstado()">Actualizar</button>
+  <button class="btn-s" onclick="cerrarSheets()">Cancelar</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= CONFIG ================= */
+const CONFIG = {
+  // URL /exec del Apps Script pegado a la planilla de Germán.
+  // Si queda vacía, la app arranca en modo demo con datos de ejemplo.
+  API_URL: 'https://script.google.com/macros/s/AKfycbwx09f3mg_ZO_UX9ZixZ8CxQ-itA6p_N7AjO4mcu8P0nNtBWPA9nAr54F9Pk9_-kXai_Q/exec',
+  // WhatsApp de Germán con código de país, sin + ni espacios. Ej: '54911xxxxxxxx'
+  WA_GERMAN: '',
+  SOLICITA: 'Francisco',   // único usuario que carga pedidos (así figura en la planilla)
+  CATEGORIAS: ['Mantenimiento','Producción','Limpieza','Seguridad','Oficina','Otro'],
+  PROVEEDORES: ['MP','ALKO','FRESCO PEZ','TECOLD','Ferretería','Otro'],
+  DIAS_ALERTA: 14   // pedidos pendientes más viejos que esto se marcan en rojo
+};
+const ESTADOS = [
+  { k:'pendiente',      label:'Pendiente',      css:'est-pendiente' },
+  { k:'presupuestado',  label:'Presupuestado',  css:'est-presupuestado' },
+  { k:'aprobado',       label:'Aprobado',       css:'est-aprobado' },
+  { k:'comprado',       label:'Comprado',       css:'est-comprado' },
+  { k:'recibido',       label:'Recibido',       css:'est-recibido' },
+  { k:'cancelado',      label:'Cancelado',      css:'est-cancelado' }
+];
+const ABIERTOS = ['pendiente','presupuestado','aprobado','comprado','otro'];
+
+/* ================= estado app ================= */
+let pedidos = [];           // filas del sheet
+let filtroEstado = 'abiertos';
+let pedidoSel = null;       // para sheet estado
+let estadoSel = null;
+
+const $ = id => document.getElementById(id);
+const hoy = () => new Date().toISOString().slice(0,10);
+
+/* ================= helpers ================= */
+function normEstado(txt){
+  const t = (txt||'').toLowerCase();
+  if (t.includes('cancel') || t.includes('rechaz')) return 'cancelado';
+  if (t.includes('recib') || t.includes('lleg') || t.includes('entregad')) return 'recibido';
+  if (t.includes('comprad') || t.includes('pagad') || t.includes('pedido a prov')) return 'comprado';
+  if (t.includes('aprob')) return 'aprobado';
+  if (t.includes('presupuest') || t.includes('cotiz')) return 'presupuestado';
+  if (t.includes('pendiente') || t === '') return 'pendiente';
+  return 'otro';
+}
+function estadoInfo(k){ return ESTADOS.find(e=>e.k===k) || {k:'otro',label:'—',css:'est-otro'}; }
+function parseImporte(v){
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return v;
+  let s = String(v).replace(/[^0-9.,-]/g,'');
+  if (!s) return null;
+  if (s.includes(',') && s.includes('.')) s = s.replace(/\./g,'').replace(',','.');
+  else if (s.includes(',')) s = s.replace(',','.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function fmtImporte(n){
+  return '$ ' + n.toLocaleString('es-AR',{maximumFractionDigits:0});
+}
+function diasDesde(fechaISO){
+  if (!fechaISO) return null;
+  const d = new Date(fechaISO + 'T12:00:00');
+  if (isNaN(d)) return null;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+}
+function fmtFecha(iso){
+  if (!iso) return '—';
+  const d = new Date(iso + 'T12:00:00');
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString('es-AR',{day:'numeric',month:'short'});
+}
+function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function toast(msg, ms=2600){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), ms);
+}
+
+/* ================= datos ================= */
+async function cargar(manual){
+  setSync('load');
+  if (!CONFIG.API_URL){
+    setSync('err');
+    $('lista').innerHTML = '<div class="vacio">Falta configurar la conexión.<br>Pegá la URL del Apps Script en <b>CONFIG.API_URL</b> (línea ~330 de este archivo).</div>';
+    return;
+  }
+  try{
+    const r = await fetch(CONFIG.API_URL, {method:'GET'});
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'respuesta inválida');
+    pedidos = j.rows;
+    localStorage.setItem('pp_cache', JSON.stringify(pedidos));
+    setSync('ok');
+  }catch(e){
+    const cache = localStorage.getItem('pp_cache');
+    if (cache) pedidos = JSON.parse(cache);
+    setSync('err');
+    toast('Sin conexión al sheet' + (cache ? ' — mostrando última copia' : ''));
+  }
+  render();
+}
+function setSync(st){
+  const d = $('syncDot'), t = $('syncTxt');
+  d.className = 'sync-dot' + (st==='ok'?' on': st==='err'?' err':'');
+  t.innerHTML = st==='load' ? '<span class="spin"></span>' : (st==='ok'?'OK':'Sync');
+}
+async function postAPI(body){
+  body.uid = uid();
+  const r = await fetch(CONFIG.API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'}, // evita preflight CORS con Apps Script
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+/* ================= KPIs ================= */
+function renderKPIs(){
+  const mesActual = new Date().toISOString().slice(0,7);
+  const abiertos = pedidos.filter(p => ABIERTOS.includes(normEstado(p.estado)));
+  const viejos = abiertos.filter(p => (diasDesde(p.fecha)||0) > CONFIG.DIAS_ALERTA);
+  const edades = abiertos.map(p => diasDesde(p.fecha)).filter(d => d!=null);
+  const edadProm = edades.length ? Math.round(edades.reduce((a,b)=>a+b,0)/edades.length) : 0;
+  const delMes = pedidos.filter(p => (p.fecha||'').startsWith(mesActual));
+  const recibidosMes = delMes.filter(p => normEstado(p.estado)==='recibido').length;
+  const gastoMes = delMes.map(p=>parseImporte(p.importe)).filter(n=>n!=null).reduce((a,b)=>a+b,0);
+
+  const kpis = [
+    { n: abiertos.length, l:'Abiertos', cls: abiertos.length ? '' : 'ok' },
+    { n: viejos.length, l:`+${CONFIG.DIAS_ALERTA} días`, cls: viejos.length ? 'bad' : 'ok' },
+    { n: edadProm + 'd', l:'Edad prom.', cls: edadProm > CONFIG.DIAS_ALERTA ? 'warn' : '' },
+    { n: delMes.length, l:'Este mes', cls:'' },
+    { n: recibidosMes, l:'Recibidos mes', cls:'ok' },
+    { n: gastoMes ? fmtImporte(gastoMes) : '—', l:'Gasto mes', cls:'warn' }
+  ];
+  $('kpis').innerHTML = kpis.map(k =>
+    `<div class="kpi ${k.cls}"><div class="n">${k.n}</div><div class="l">${k.l}</div></div>`).join('');
+}
+
+/* ================= filtros + lista ================= */
+function renderChips(){
+  const cnt = k => pedidos.filter(p => normEstado(p.estado)===k).length;
+  const abiertos = pedidos.filter(p => ABIERTOS.includes(normEstado(p.estado))).length;
+  let html = `<button class="chip ${filtroEstado==='abiertos'?'act':''}" onclick="setFiltro('abiertos')">Abiertos <span class="cnt">${abiertos}</span></button>`;
+  html += `<button class="chip ${filtroEstado==='todos'?'act':''}" onclick="setFiltro('todos')">Todos <span class="cnt">${pedidos.length}</span></button>`;
+  for (const e of ESTADOS){
+    const c = cnt(e.k);
+    if (!c) continue;
+    html += `<button class="chip ${filtroEstado===e.k?'act':''}" onclick="setFiltro('${e.k}')">${e.label} <span class="cnt">${c}</span></button>`;
+  }
+  $('chipsEstado').innerHTML = html;
+}
+function setFiltro(f){ filtroEstado = f; render(); }
+
+function render(){
+  renderKPIs(); renderChips();
+  const q = $('busca').value.trim().toLowerCase();
+  let rows = pedidos.filter(p => {
+    const ne = normEstado(p.estado);
+    if (filtroEstado === 'abiertos' && !ABIERTOS.includes(ne)) return false;
+    if (filtroEstado !== 'abiertos' && filtroEstado !== 'todos' && ne !== filtroEstado) return false;
+    if (q){
+      const blob = [p.descripcion,p.proveedor,p.comentario,p.solicita,p.categoria,p.estado].join(' ').toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+  // más nuevos arriba
+  rows.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || (b._row - a._row));
+
+  if (!rows.length){
+    $('lista').innerHTML = `<div class="vacio">No hay pedidos acá.<br>Tocá <b>＋ Nuevo pedido</b> para cargar uno.</div>`;
+    return;
+  }
+  let html = '', mesPrev = '';
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  for (const p of rows){
+    const mes = (p.fecha||'').slice(0,7);
+    if (mes && mes !== mesPrev){
+      mesPrev = mes;
+      const [y,m] = mes.split('-');
+      html += `<div class="dia-sep">${meses[parseInt(m,10)-1]} ${y}</div>`;
+    }
+    html += cardHTML(p);
+  }
+  $('lista').innerHTML = html;
+}
+
+function cardHTML(p){
+  const ne = normEstado(p.estado);
+  const ei = estadoInfo(ne);
+  const dias = diasDesde(p.fecha);
+  const cerrado = ne === 'recibido' || ne === 'cancelado';
+  let eCls = 'e1';
+  if (!cerrado && dias != null){
+    eCls = dias <= 3 ? 'e0' : dias <= 7 ? 'e1' : dias <= CONFIG.DIAS_ALERTA ? 'e2' : 'e3';
+  }
+  const imp = parseImporte(p.importe);
+  const labelEstado = ne === 'otro' ? esc(p.estado) : ei.label;
+  return `<div class="pedido">
+    <div class="p-top">
+      <div class="p-desc">${esc(p.descripcion)}${p.cantidad ? ` <span style="color:var(--acero-2);font-weight:500">· ${esc(p.cantidad)}</span>`:''}</div>
+      ${dias!=null && !cerrado ? `<div class="edad ${eCls}">${dias}<small>DÍAS</small></div>` : ''}
+    </div>
+    <div class="p-meta"><b>${esc(p.solicita)}</b> · ${fmtFecha(p.fecha)}${p.proveedor ? ' · '+esc(p.proveedor):''}${p.categoria ? ' · '+esc(p.categoria):''}${p.factura ? ' · Fact. '+esc(p.factura):''}</div>
+    ${p.comentario ? `<div class="p-coment">${esc(p.comentario)}</div>` : ''}
+    <div class="p-row">
+      <button class="estado ${ei.css}" onclick="abrirEstado(${p._row})">${labelEstado}</button>
+      ${imp!=null ? `<span class="p-importe">${fmtImporte(imp)}</span>` : ''}
+      ${p.link ? `<a class="p-link" href="${esc(p.link)}" target="_blank" rel="noopener">Ver link ↗</a>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ================= nuevo pedido ================= */
+function abrirNuevo(){
+  $('fFecha').value = hoy();
+  $('fSolicita').value = CONFIG.SOLICITA;
+  $('fCat').innerHTML = CONFIG.CATEGORIAS.map(c=>`<option>${c}</option>`).join('');
+  $('dlProv').innerHTML = CONFIG.PROVEEDORES.map(p=>`<option value="${p}">`).join('');
+  abrirSheet('shNuevo');
+}
+async function guardarNuevo(){
+  const desc = $('fDesc').value.trim();
+  if (!desc){ toast('Falta la descripción'); return; }
+  const data = {
+    fecha: $('fFecha').value || hoy(),
+    solicita: CONFIG.SOLICITA,
+    categoria: $('fCat').value,
+    proveedor: $('fProv').value.trim(),
+    descripcion: desc,
+    cantidad: $('fCant').value.trim(),
+    link: $('fLink').value.trim(),
+    comentario: $('fComent').value.trim(),
+    estado: 'Pendiente'
+  };
+  const btn = $('btnGuardar');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Guardando…';
+  try{
+    const j = await postAPI({action:'nuevo', data});
+    if (!j.ok) throw new Error(j.error);
+    cerrarSheets();
+    ['fDesc','fCant','fProv','fLink','fComent'].forEach(id => $(id).value = '');
+    toast('Pedido guardado ✔');
+    if (CONFIG.WA_GERMAN && confirm('¿Avisar a Germán por WhatsApp?')) waNuevo(data);
+    cargar();
+  }catch(e){
+    toast('Error al guardar: ' + e.message, 4000);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar pedido';
+  }
+}
+
+/* ================= cambiar estado ================= */
+function abrirEstado(row){
+  pedidoSel = pedidos.find(p => p._row === row);
+  if (!pedidoSel) return;
+  estadoSel = normEstado(pedidoSel.estado);
+  $('estDesc').textContent = pedidoSel.descripcion + ' — pedido por ' + pedidoSel.solicita;
+  $('estComent').value = '';
+  renderEstGrid();
+  abrirSheet('shEstado');
+}
+function renderEstGrid(){
+  $('estGrid').innerHTML = ESTADOS.map(e =>
+    `<button class="est-opt ${e.css} ${estadoSel===e.k?'sel':''}" onclick="selEstado('${e.k}')">${e.label}</button>`).join('');
+}
+function selEstado(k){ estadoSel = k; renderEstGrid(); }
+async function guardarEstado(){
+  if (!pedidoSel) return;
+  const nuevo = estadoInfo(estadoSel).label;
+  const btn = $('btnEstado');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Actualizando…';
+  try{
+    const body = {action:'estado', row: pedidoSel._row, esperado: pedidoSel.descripcion, estado: nuevo};
+    const com = $('estComent').value.trim();
+    if (com) body.comentario = com;
+    const j = await postAPI(body);
+    if (!j.ok){
+      if (j.conflicto){ toast('La planilla cambió, recargando…', 3500); cargar(); cerrarSheets(); return; }
+      throw new Error(j.error);
+    }
+    cerrarSheets();
+    toast('Estado → ' + nuevo + ' ✔');
+    cargar();
+  }catch(e){
+    toast('Error: ' + e.message, 4000);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Actualizar';
+  }
+}
+
+/* ================= WhatsApp ================= */
+function waURL(msg){
+  const base = CONFIG.WA_GERMAN ? `https://wa.me/${CONFIG.WA_GERMAN}` : 'https://wa.me/';
+  return base + '?text=' + encodeURIComponent(msg);
+}
+function waNuevo(d){
+  const msg = `🛒 *Nuevo pedido — Pesce*\n\n*${d.descripcion}*${d.cantidad ? ' · '+d.cantidad : ''}\nSolicita: ${d.solicita}\n${d.proveedor ? 'Proveedor: '+d.proveedor+'\n' : ''}${d.link ? d.link+'\n' : ''}${d.comentario ? '_'+d.comentario+'_' : ''}`;
+  window.open(waURL(msg), '_blank');
+}
+function waPendientes(){
+  const abiertos = pedidos.filter(p => ABIERTOS.includes(normEstado(p.estado)))
+    .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  if (!abiertos.length){ toast('No hay pedidos abiertos 👌'); return; }
+  let msg = `📋 *Pedidos abiertos — Pesce* (${abiertos.length})\n\n`;
+  for (const p of abiertos){
+    const d = diasDesde(p.fecha);
+    msg += `• *${p.descripcion}*${p.cantidad ? ' ('+p.cantidad+')' : ''} — ${p.solicita}${d!=null ? ', hace '+d+'d' : ''}${d > CONFIG.DIAS_ALERTA ? ' ⚠️' : ''}\n`;
+  }
+  msg += `\n¿Novedades? Gracias 🙌`;
+  window.open(waURL(msg), '_blank');
+}
+
+/* ================= sheets ================= */
+function abrirSheet(id){
+  $('velo').classList.add('on');
+  $(id).classList.add('on');
+}
+function cerrarSheets(){
+  $('velo').classList.remove('on');
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('on'));
+}
+
+/* ================= init ================= */
+(function init(){
+  $('quienNombre').textContent = CONFIG.SOLICITA;
+  cargar();
+})();
+</script>
+</body>
+</html>

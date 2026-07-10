@@ -134,6 +134,7 @@ var CONFIG = {
       <div class="tab on" data-v="hoy" onclick="verTab(this)">📊 Hoy</div>
       <div class="tab" data-v="pend" onclick="verTab(this)">📋 Pendientes</div>
       <div class="tab" data-v="rep" onclick="verTab(this)">📦 Repuestos</div>
+      <div class="tab" data-v="usados" onclick="verTab(this)">🔩 Usados 7d</div>
       <div class="tab" data-v="frio" onclick="verTab(this)">❄️ Planta</div>
     </div>
 
@@ -148,6 +149,7 @@ var CONFIG = {
 
     <div class="vista" id="v-pend"><div id="lista-pend"></div></div>
     <div class="vista" id="v-rep"><div id="lista-rep"></div></div>
+    <div class="vista" id="v-usados"><div id="lista-usados"></div></div>
 
     <div class="vista" id="v-frio">
       <div class="sech" style="margin-top:4px">&Uacute;ltima ronda</div>
@@ -265,6 +267,18 @@ function render(r){
     h+="<div class='meta'>Lo pidi\u00f3 "+esc(t.tomada_por||t.de)+"</div></div>";
   }
   $("lista-rep").innerHTML=h;
+
+  // REPUESTOS USADOS (7 días)
+  h="";
+  var ru = r.repuestosUsados || [];
+  if(ru.length===0) h="<div class='vacio'>No se registraron repuestos usados esta semana.</div>";
+  for(i=0;i<ru.length;i++){ t=ru[i];
+    var cuando = t.dias===0 ? "hoy" : (t.dias===1 ? "ayer" : "hace "+t.dias+" d");
+    h+="<div class='card'><div class='top'><span class='eq'>"+esc(t.equipo)+"</span><span class='age ok'>"+cuando+"</span></div>";
+    h+="<div class='txt'><b>"+esc(t.repuesto)+"</b><br>"+esc(t.trabajo)+"</div>";
+    h+="<div class='meta'>Lo usó "+esc(t.tecnico)+"</div></div>";
+  }
+  $("lista-usados").innerHTML=h;
 
   // PLANTA / FRIO
   $("frio-ronda").innerHTML = r.frio.ultima

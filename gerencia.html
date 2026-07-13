@@ -149,7 +149,10 @@ var CONFIG = {
 
     <div class="vista" id="v-pend"><div id="lista-pend"></div></div>
     <div class="vista" id="v-rep"><div id="lista-rep"></div></div>
-    <div class="vista" id="v-usados"><div id="lista-usados"></div></div>
+    <div class="vista" id="v-usados">
+      <table class="mini"><thead><tr><th>Repuesto</th><th>Equipo</th><th>Qui&eacute;n</th><th>Cu&aacute;ndo</th></tr></thead>
+      <tbody id="lista-usados"></tbody></table>
+    </div>
 
     <div class="vista" id="v-frio">
       <div class="sech" style="margin-top:4px">&Uacute;ltima ronda</div>
@@ -176,6 +179,11 @@ function entrar(){
   cargar(true);
 }
 $("pin").addEventListener("keyup", function(e){ if(e.key==="Enter") entrar(); });
+/* si ya entró una vez en este dispositivo, no vuelve a pedir el PIN */
+(function(){
+  var g=null; try{ g=localStorage.getItem("pmos_ger_pin"); }catch(e){}
+  if(g){ PIN=g; cargar(true); }
+})();
 
 function verTab(el){
   var tabs=document.querySelectorAll(".tab"), i;
@@ -195,7 +203,12 @@ function cargar(manual){
   x.onload=function(){
     var r;
     try{ r=JSON.parse(x.responseText); }catch(e){ $("pin-err").textContent="Error de conexi\u00f3n"; return; }
-    if(r.error==="pin"){ $("pin-err").textContent="PIN incorrecto"; return; }
+    if(r.error==="pin"){
+      try{ localStorage.removeItem("pmos_ger_pin"); }catch(e2){}
+      $("panel").style.display="none"; $("scr-pin").style.display="block";
+      $("pin-err").textContent="PIN incorrecto"; return;
+    }
+    try{ localStorage.setItem("pmos_ger_pin", PIN); }catch(e3){}
     $("scr-pin").style.display="none";
     $("panel").style.display="block";
     $("cargando").style.display="none";

@@ -276,7 +276,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <div class="sub">Qu&eacute; pasaba, qu&eacute; hiciste y c&oacute;mo qued&oacute;.</div>
     <div class="campo">
       <label>Equipo o &aacute;rea <span class="obl">*</span></label>
-      <select id="t-eq"></select>
+      <select id="t-eq" onchange="chkOtros('t')"></select>
+    </div>
+    <div class="campo" id="t-otros-box" style="display:none">
+      <label>&iquest;D&oacute;nde / qu&eacute; equipo? <span class="obl">*</span></label>
+      <input type="text" id="t-otros" placeholder="Ej: ba&ntilde;o vestuario, portón calle, comedor">
     </div>
     <div class="campo">
       <label>Qu&eacute; pasaba <span class="obl">*</span></label>
@@ -319,7 +323,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <div class="sub">Algo que viste mal. No hace falta que lo arregles &mdash; con reportarlo alcanza.</div>
     <div class="campo">
       <label>Equipo o &aacute;rea <span class="obl">*</span></label>
-      <select id="f-eq"></select>
+      <select id="f-eq" onchange="chkOtros('f')"></select>
+    </div>
+    <div class="campo" id="f-otros-box" style="display:none">
+      <label>&iquest;D&oacute;nde / qu&eacute; equipo? <span class="obl">*</span></label>
+      <input type="text" id="f-otros" placeholder="Ej: ba&ntilde;o vestuario, portón calle, comedor">
     </div>
     <div class="campo">
       <label>Qu&eacute; viste mal <span class="obl">*</span></label>
@@ -441,7 +449,8 @@ var CONFIG = {
     "Cámara 1","Cámara 2","Cámara 3","Cámara 4","Central Cámara 3y4","Techos","Zona compresores",
     "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
     "Máquina de hielo","Zona de Lavado","Zona de Basura","Calderas / Termotanques","Tablero / Eléctrico",
-    "Sector Cajas","Velez","Administración","Otros"
+    "Bombas / Tanques de agua","Iluminación","Portones / Puertas","Sanitarios / Plomería",
+    "Oficinas / Server","Soporte / No técnico","Sector Cajas","Velez","Administración","Otros"
   ],
 
   /* 4) Temperatura: arranca con este valor negativo ya puesto */
@@ -763,6 +772,7 @@ function cerrarConTrabajo(id){
   llenarSelect($("t-eq"), CONFIG.equipos);
   // precarga: sector si coincide con la lista, síntoma con la descripción de la tarea
   $("t-eq").value = CONFIG.equipos.indexOf(t.sector)>=0 ? t.sector : "";
+  $("t-otros").value=""; $("t-otros-box").style.display="none"; chkOtros("t");
   $("t-pasaba").value = t.desc;
   $("t-desc").value=""; $("t-quedo").value=""; $("t-rep").value=""; $("t-error").textContent="";
   cierreSel=null; $("t-cierre-def").className="chip"; $("t-cierre-prov").className="chip";
@@ -879,6 +889,19 @@ function etiquetaEstado(e){ return {anda:"Anda pero hay que verlo",fuera:"No and
 function cerrarModales(){ var m=document.querySelectorAll(".modal-fondo"), i; for(i=0;i<m.length;i++) m[i].className="modal-fondo"; }
 function abrir(id){ $(id).className="modal-fondo visible"; }
 
+/* "Otros" pide especificar dónde */
+function chkOtros(pref){
+  var sel=$(pref+"-eq"), box=$(pref+"-otros-box");
+  if(!sel||!box) return;
+  box.style.display = (sel.value==="Otros") ? "block" : "none";
+}
+function equipoFinal(pref){
+  var eq=$(pref+"-eq").value;
+  if(eq!=="Otros") return eq;
+  var det=val(pref+"-otros");
+  return det ? "Otros: "+det : "";
+}
+
 /* TRABAJO */
 var cierreSel=null;
 function selCierre(v){
@@ -890,6 +913,7 @@ function abrirTrabajo(){
   tareaEnCierre=null; // trabajo suelto, sin tarea vinculada
   llenarSelect($("t-eq"), CONFIG.equipos);
   $("t-pasaba").value=""; $("t-desc").value=""; $("t-quedo").value=""; $("t-rep").value=""; $("t-error").textContent="";
+  $("t-otros").value=""; $("t-otros-box").style.display="none";
   cierreSel=null; $("t-cierre-def").className="chip"; $("t-cierre-prov").className="chip";
   $("t-ini").value=ahoraHHMM(); $("t-fin").value="";
   abrir("m-trabajo");
@@ -902,15 +926,21 @@ function diffMin(ini, fin){
 }
 function guardarTrabajo(){
   if(frenar()) return;
-  var eq=$("t-eq").value, pasaba=val("t-pasaba"), desc=val("t-desc"), quedo=val("t-quedo"),
+  var eq=equipoFinal("t"), pasaba=val("t-pasaba"), desc=val("t-desc"), quedo=val("t-quedo"),
       rep=val("t-rep"), ini=$("t-ini").value, fin=$("t-fin").value;
-  if(!eq){ $("t-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
+  if(!$("t-eq").value){ $("t-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
+  if(!eq){ $("t-error").textContent="Especific&aacute; d&oacute;nde fue (elegiste Otros)."; return; }
   if(!pasaba){ $("t-error").textContent="Escrib&iacute; qu&eacute; pasaba."; return; }
   if(!desc){ $("t-error").textContent="Escrib&iacute; qu&eacute; hiciste."; return; }
   if(!quedo){ $("t-error").textContent="Escrib&iacute; c&oacute;mo qued&oacute;."; return; }
+  var qNorm=quedo.toLowerCase().replace(/[.\s]/g,"");
+  if(quedo.length<8 || /^(ok|bien|listo|echo|hecho|fijo|joya|okey|10|todobien)$/.test(qNorm)){
+    $("t-error").textContent="Cont&aacute; un poco m&aacute;s c&oacute;mo qued&oacute;: &iquest;anda bien? &iquest;qued&oacute; algo pendiente?"; return;
+  }
   if(!cierreSel){ $("t-error").textContent="Eleg&iacute; el tipo de cierre."; return; }
   if(!ini||!fin){ $("t-error").textContent="Cargá hora de inicio y fin."; return; }
   var durMin=diffMin(ini,fin);
+  if(durMin===0){ $("t-error").textContent="Inicio y fin son iguales. Carg&aacute; la hora real de fin."; return; }
   if(durMin>240){
     var hs=Math.floor(durMin/60), ms=durMin%60;
     if(!window.confirm("La duraci\u00f3n da "+hs+" h "+ms+" min ("+ini+" a "+fin+").\n\u00bfEs correcto?")){
@@ -945,6 +975,7 @@ function selUrgFalla(v){
 function abrirFalla(){
   llenarSelect($("f-eq"), CONFIG.equipos);
   $("f-vio").value=""; $("f-error").textContent="";
+  $("f-otros").value=""; $("f-otros-box").style.display="none";
   fEstadoSel=null; fUrgSel=null;
   $("f-est-anda").className="chip"; $("f-est-noanda").className="chip"; $("f-est-rep").className="chip"; $("f-est-diag").className="chip";
   $("f-urg-esp").className="chip"; $("f-urg-urg").className="chip";
@@ -952,8 +983,9 @@ function abrirFalla(){
 }
 function guardarFalla(){
   if(frenar()) return;
-  var eq=$("f-eq").value, vio=val("f-vio");
-  if(!eq){ $("f-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
+  var eq=equipoFinal("f"), vio=val("f-vio");
+  if(!$("f-eq").value){ $("f-error").textContent="Eleg&iacute; el equipo o &aacute;rea."; return; }
+  if(!eq){ $("f-error").textContent="Especific&aacute; d&oacute;nde fue (elegiste Otros)."; return; }
   if(!vio){ $("f-error").textContent="Escrib&iacute; qu&eacute; viste mal."; return; }
   if(!fEstadoSel){ $("f-error").textContent="Eleg&iacute; c&oacute;mo est&aacute;."; return; }
   if(!fUrgSel){ $("f-error").textContent="Eleg&iacute; si urge."; return; }
@@ -1268,7 +1300,7 @@ function guardarRonda(){
         r=numero(idAmp(si,pi,0)); d=numero(idAmp(si,pi,1)); t=numero(idAmp(si,pi,2));
         k=si+"_"+pi+"_t"; temp=getTemp(k);
         mx=Math.max(r||0,d||0,t||0); mn=Math.min(r||0,d||0,t||0);
-        desb=(mx>=CONFIG.MIN_AMP && mx>0 && (mx-mn)/mx>CONFIG.UMBRAL_DESBALANCE)?Math.round((mx-mn)/mx*100):0;
+        desb=(mx>=CONFIG.MIN_AMP && mx>0)?Math.round((mx-mn)/mx*100):0; // % real siempre (piso 8A); la alerta sigue al 30%
         puntos.push({ seccion:sec.titulo, punto:sec.puntos[pi], tipo:"contenedor", estado_punto:"medido", R:r, D:d, T:t, desbalance_pct:desb, temp_entrada:temp, temp_fondo:null });
       }
     }
@@ -1284,7 +1316,7 @@ function guardarRonda(){
         }
         r=numero(idAmp(si,pi,0)); d=numero(idAmp(si,pi,1)); t=numero(idAmp(si,pi,2));
         mx=Math.max(r||0,d||0,t||0); mn=Math.min(r||0,d||0,t||0);
-        desb=(mx>=CONFIG.MIN_AMP && mx>0 && (mx-mn)/mx>CONFIG.UMBRAL_DESBALANCE)?Math.round((mx-mn)/mx*100):0;
+        desb=(mx>=CONFIG.MIN_AMP && mx>0)?Math.round((mx-mn)/mx*100):0; // % real siempre (piso 8A); la alerta sigue al 30%
         puntos.push({ seccion:sec.titulo, punto:"Compresor "+c, tipo:"compresor", num:c, estado_punto:"medido", R:r, D:d, T:t, desbalance_pct:desb });
       }
       puntos.push({ seccion:sec.titulo, punto:sec.titulo+" - Temperatura", tipo:"temp_zona", estado_punto:"medido", temp_entrada:te, temp_fondo:tf });

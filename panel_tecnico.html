@@ -103,6 +103,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .btn-vermas{width:100%;background:transparent;border:1px dashed #2A3B4C;border-radius:11px;
   color:#7E93A8;padding:12px;font-size:13.5px;font-weight:600;margin-top:2px}
 .btn-vermas:active{color:#4FD8E0;border-color:#4FD8E0}
+/* selector de clase de trabajo */
+.clase{display:flex;width:100%;align-items:center;gap:13px;background:#16222F;border:1px solid #24364A;border-radius:14px;
+  padding:15px;margin-bottom:9px;color:#E8F0F6;text-align:left;font-size:15px;font-weight:700}
+.clase small{display:block;color:#7E93A8;font-size:12px;font-weight:400;margin-top:2px}
+.clase .icc{font-size:24px}
+.clase.c1{border-left:5px solid #FF6B7A}.clase.c2{border-left:5px solid #4FD8E0}
+.clase.c3{border-left:5px solid #F2B33D}.clase.c4{border-left:5px solid #46D68C}
+/* foto */
+.foto-row{display:flex;align-items:center;gap:10px}
+.btn-foto{flex:1;border:1.5px dashed #2A3B4C;background:none;border-radius:11px;padding:13px;color:#7E93A8;font-size:14px;font-weight:600}
+.foto-prev{display:none;position:relative;width:74px;height:74px;border-radius:11px;overflow:hidden;border:1px solid #24364A}
+.foto-prev img{width:100%;height:100%;object-fit:cover}
+.foto-x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px}
+.hint-rut{background:rgba(79,216,224,.08);border:1px solid rgba(79,216,224,.3);border-radius:10px;padding:10px 12px;font-size:12.5px;color:#9FE3EA;margin-bottom:12px}
 /* estado de punto en ronda */
 .btn-nm{flex:0 0 40px;height:44px;border-radius:10px;border:1.5px solid #24364A;background:#16222F;
   color:#7E93A8;font-size:19px;font-weight:800;margin-left:6px;align-self:flex-end}
@@ -270,9 +284,106 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 </div>
 
 <!-- ============ MODAL TRABAJO ============ -->
+<!-- ============ SELECTOR DE CLASE ============ -->
+<div class="modal-fondo" id="m-clase">
+  <div class="modal">
+    <h3>&iquest;Qu&eacute; tipo de trabajo es?</h3>
+    <div class="sub">Un toque y te lleva al formulario justo.</div>
+    <button class="clase c1" onclick="abrirClase('rep')"><span class="icc">🔧</span><span>Reparaci&oacute;n<small>Algo estaba mal y lo arreglaste</small></span></button>
+    <button class="clase c2" onclick="abrirClase('rut')"><span class="icc">🔁</span><span>Rutina / Control<small>Revisi&oacute;n o control de equipos</small></span></button>
+    <button class="clase c3" onclick="abrirClase('tar')"><span class="icc">🛠</span><span>Tarea / Mejora<small>Instalaci&oacute;n, mejora o proyecto. Tercero que trabaj&oacute; en un equipo va ac&aacute;.</small></span></button>
+    <button class="clase c4" onclick="abrirClase('sop')"><span class="icc">🤝</span><span>Soporte<small>Ayuda no t&eacute;cnica: comida, puertas, acompa&ntilde;ar</small></span></button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL RUTINA / CONTROL ============ -->
+<div class="modal-fondo" id="m-rutina">
+  <div class="modal">
+    <h3>🔁 Rutina / Control</h3>
+    <div class="sub">Revisi&oacute;n o control puntual de equipos.</div>
+    <div class="campo"><label>Sector <span class="obl">*</span></label><select id="rut-eq" onchange="chkOtros('rut')"></select></div>
+    <div class="campo" id="rut-otros-box" style="display:none">
+      <label>&iquest;D&oacute;nde / qu&eacute; equipo? <span class="obl">*</span></label>
+      <input type="text" id="rut-otros" placeholder="Ej: bomba pluvial del fondo"></div>
+    <div class="campo"><label>Qu&eacute; controlaste <span class="obl">*</span></label>
+      <textarea id="rut-desc" placeholder="Ej: control de bombas presurizadoras y tanques"></textarea></div>
+    <div class="campo"><label>&iquest;Todo en orden? <span class="obl">*</span></label>
+      <div class="chips">
+        <div class="chip" id="rut-si" onclick="ordenRutina('si')">✓ S&iacute;</div>
+        <div class="chip" id="rut-no" onclick="ordenRutina('no')">✗ No</div>
+      </div></div>
+    <div id="rut-novedad" style="display:none">
+      <div class="campo"><label>Qu&eacute; viste mal <span class="obl">*</span></label>
+        <textarea id="rut-vio" placeholder="Ej: la bomba 2 vibra m&aacute;s de lo normal"></textarea></div>
+      <div class="campo"><label>&iquest;Urge? <span class="obl">*</span></label>
+        <div class="chips">
+          <div class="chip" id="rut-esp" onclick="selUrgRutina('puede_esperar')">Puede esperar</div>
+          <div class="chip" id="rut-urg" onclick="selUrgRutina('urgente')">Urgente</div>
+        </div></div>
+      <div class="hint-rut">💡 Esto genera <b>falla + tarea en el backlog</b> autom&aacute;ticamente.</div>
+    </div>
+    <div class="dos">
+      <div class="campo"><label>Empez&oacute; <span class="obl">*</span></label><input type="time" id="rut-ini"></div>
+      <div class="campo"><label>Termin&oacute; <span class="obl">*</span></label><input type="time" id="rut-fin"></div>
+    </div>
+    <div class="aviso-error" id="rut-error"></div>
+    <button class="btn btn-ok" onclick="guardarRutina()">Guardar</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL TAREA / MEJORA ============ -->
+<div class="modal-fondo" id="m-tarea">
+  <div class="modal">
+    <h3>🛠 Tarea / Mejora</h3>
+    <div class="sub">Instalaci&oacute;n, mejora o avance de proyecto.</div>
+    <div class="campo"><label>Sector <span class="obl">*</span></label><select id="tar-eq" onchange="chkOtros('tar')"></select></div>
+    <div class="campo" id="tar-otros-box" style="display:none">
+      <label>&iquest;D&oacute;nde / qu&eacute; equipo? <span class="obl">*</span></label>
+      <input type="text" id="tar-otros" placeholder="Ej: comedor, pasillo entrada"></div>
+    <div class="campo"><label>Qu&eacute; hiciste <span class="obl">*</span></label>
+      <textarea id="tar-hizo" placeholder="Ej: cable&eacute; las bandejas del server y conect&eacute; 4 puestos"></textarea></div>
+    <div class="campo"><label>C&oacute;mo qued&oacute; / qu&eacute; falta <span class="obl">*</span></label>
+      <textarea id="tar-quedo" placeholder="Ej: falta el switch, llega el lunes"></textarea></div>
+    <div class="campo"><label>Proyecto <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional — agrupa los avances)</span></label>
+      <input type="text" id="tar-proy" list="tar-proys" placeholder="Ej: Server">
+      <datalist id="tar-proys"></datalist></div>
+    <div class="campo"><label>Estado <span class="obl">*</span></label>
+      <div class="chips">
+        <div class="chip" id="tar-term" onclick="selEstTarea('terminado')">Terminado</div>
+        <div class="chip" id="tar-curso" onclick="selEstTarea('en curso')">Sigue en curso</div>
+      </div></div>
+    <div class="dos">
+      <div class="campo"><label>Empez&oacute; <span class="obl">*</span></label><input type="time" id="tar-ini"></div>
+      <div class="campo"><label>Termin&oacute; <span class="obl">*</span></label><input type="time" id="tar-fin"></div>
+    </div>
+    <div class="aviso-error" id="tar-error"></div>
+    <button class="btn btn-ok" onclick="guardarTarea()">Guardar</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL SOPORTE ============ -->
+<div class="modal-fondo" id="m-soporte">
+  <div class="modal">
+    <h3>🤝 Soporte</h3>
+    <div class="sub">Ayuda no t&eacute;cnica. Una l&iacute;nea y listo.</div>
+    <div class="campo"><label>Qu&eacute; fue <span class="obl">*</span></label>
+      <input type="text" id="sop-desc" placeholder="Ej: le abr&iacute; al cocinero"></div>
+    <div class="dos">
+      <div class="campo"><label>Empez&oacute; <span class="obl">*</span></label><input type="time" id="sop-ini"></div>
+      <div class="campo"><label>Termin&oacute; <span class="obl">*</span></label><input type="time" id="sop-fin"></div>
+    </div>
+    <div class="aviso-error" id="sop-error"></div>
+    <button class="btn btn-ok" onclick="guardarSoporte()">Guardar</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
 <div class="modal-fondo" id="m-trabajo">
   <div class="modal">
-    <h3>Registrar trabajo</h3>
+    <h3>🔧 Reparaci&oacute;n</h3>
     <div class="sub">Qu&eacute; pasaba, qu&eacute; hiciste y c&oacute;mo qued&oacute;.</div>
     <div class="campo">
       <label>Equipo o &aacute;rea <span class="obl">*</span></label>
@@ -298,6 +409,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
       <label>Repuesto usado <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
       <input type="text" id="t-rep" placeholder="Ej: 2 rodamientos 6204 / ninguno">
     </div>
+    <div class="campo"><label>Foto <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
+      <div class="foto-row">
+        <button class="btn-foto" onclick="document.getElementById('t-file').click();return false;">📷 Sacar foto</button>
+        <input type="file" id="t-file" accept="image/*" capture="environment" style="display:none" onchange="fotoElegida(this,'t')">
+        <div class="foto-prev" id="t-prev"><img id="t-img"><button class="foto-x" onclick="quitarFoto('t');return false;">✕</button></div>
+      </div></div>
     <div class="campo">
       <label>Tipo de cierre <span class="obl">*</span></label>
       <div class="chips" id="t-cierre">
@@ -333,6 +450,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
       <label>Qu&eacute; viste mal <span class="obl">*</span></label>
       <textarea id="f-vio" placeholder="Ej: la c&aacute;mara 2 tiene agua goteando del techo sobre la mercader&iacute;a"></textarea>
     </div>
+    <div class="campo"><label>Foto <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
+      <div class="foto-row">
+        <button class="btn-foto" onclick="document.getElementById('f-file').click();return false;">📷 Sacar foto</button>
+        <input type="file" id="f-file" accept="image/*" capture="environment" style="display:none" onchange="fotoElegida(this,'f')">
+        <div class="foto-prev" id="f-prev"><img id="f-img"><button class="foto-x" onclick="quitarFoto('f');return false;">✕</button></div>
+      </div></div>
     <div class="campo">
       <label>&iquest;C&oacute;mo est&aacute;? <span class="obl">*</span></label>
       <div class="chips" id="f-estado">
@@ -444,14 +567,18 @@ var CONFIG = {
   ],
 
   /* 3) Sectores para los desplegables (Trabajo y Falla) */
-  equipos: [
-    "Túnel 1","Túnel 2","Producción Grande","Producción Chica","Kioscos","Despacho","Taller",
-    "Cámara 1","Cámara 2","Cámara 3","Cámara 4","Central Cámara 3y4","Techos","Zona compresores",
-    "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
-    "Máquina de hielo","Zona de Lavado","Zona de Basura","Calderas / Termotanques","Tablero / Eléctrico",
-    "Bombas / Tanques de agua","Iluminación","Portones / Puertas","Sanitarios / Plomería",
-    "Oficinas / Server","Soporte / No técnico","Sector Cajas","Velez","Administración","Otros"
+  /* Sectores agrupados. "equipos" (lista plana) se arma solo más abajo. */
+  grupos: [
+    ["TALLER", ["Taller"]],
+    ["FRÍO", ["Cámara 1","Cámara 2","Cámara 3","Cámara 4","Túnel 1","Túnel 2","Central Cámara 3y4",
+              "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
+              "Máquina de hielo","Zona compresores"]],
+    ["PRODUCCIÓN", ["Producción Grande","Producción Chica","Despacho","Kioscos","Sector Cajas","Zona de Lavado"]],
+    ["SERVICIOS", ["Bombas / Tanques de agua","Calderas / Termotanques","Tablero / Eléctrico","Iluminación"]],
+    ["EDILICIO", ["Techos","Portones / Puertas","Sanitarios / Plomería","Oficinas / Server","Zona de Basura"]],
+    ["OTROS", ["Velez","Administración","Soporte / No técnico","Otros"]]
   ],
+  equipos: [],
 
   /* 4) Temperatura: arranca con este valor negativo ya puesto */
   TEMP_DEFAULT: -18,
@@ -496,6 +623,26 @@ var pinBuffer = "", pinEsperado = "", pinNombre = "";
 
 /* ---------------- helpers ---------------- */
 function $(id){ return document.getElementById(id); }
+/* lista plana de sectores derivada de los grupos */
+(function(){ var i,j; for(i=0;i<CONFIG.grupos.length;i++) for(j=0;j<CONFIG.grupos[i][1].length;j++) CONFIG.equipos.push(CONFIG.grupos[i][1][j]); })();
+/* sectores recientes por técnico */
+function recSectores(){ try{ return JSON.parse(localStorage.getItem("pmos_sec_"+(SES.nombre||""))||"[]"); }catch(e){ return []; } }
+function recordarSector(sec){
+  if(!sec||sec==="Otros"||!SES.nombre) return;
+  var r=recSectores().filter(function(x){return x!==sec;});
+  r.unshift(sec); localStorage.setItem("pmos_sec_"+SES.nombre, JSON.stringify(r.slice(0,4)));
+}
+function llenarSectores(sel){
+  var h="<option value=''>— elegí —</option>", i, j, r=recSectores();
+  if(r.length){ h+="<optgroup label='— ÚLTIMOS QUE USASTE —'>";
+    for(i=0;i<r.length;i++) h+="<option>"+r[i]+"</option>"; h+="</optgroup>"; }
+  for(i=0;i<CONFIG.grupos.length;i++){
+    h+="<optgroup label='— "+CONFIG.grupos[i][0]+" —'>";
+    for(j=0;j<CONFIG.grupos[i][1].length;j++) h+="<option>"+CONFIG.grupos[i][1][j]+"</option>";
+    h+="</optgroup>";
+  }
+  sel.innerHTML=h;
+}
 function dosDig(n){ return (n<10?"0":"")+n; }
 function ahoraHHMM(){ var d=new Date(); return dosDig(d.getHours())+":"+dosDig(d.getMinutes()); }
 function hoyKey(){ var d=new Date(); return d.getFullYear()+"-"+dosDig(d.getMonth()+1)+"-"+dosDig(d.getDate()); }
@@ -769,7 +916,8 @@ function cerrarConTrabajo(id){
   var t=tareasMias[id];
   if(!t){ toast("Refresc\u00e1 e intent\u00e1 de nuevo","err"); return; }
   tareaEnCierre=id;
-  llenarSelect($("t-eq"), CONFIG.equipos);
+  llenarSectores($("t-eq"));
+  quitarFoto("t");
   // precarga: sector si coincide con la lista, síntoma con la descripción de la tarea
   $("t-eq").value = CONFIG.equipos.indexOf(t.sector)>=0 ? t.sector : "";
   $("t-otros").value=""; $("t-otros-box").style.display="none"; chkOtros("t");
@@ -799,7 +947,7 @@ function selNPlazo(v){ nPlazo=v;
   for(i=0;i<ids.length;i++) $(ids[i]).className="chip"+(vals[i]===v?" on":"");
 }
 function abrirNueva(){
-  llenarSelect($("n-eq"), CONFIG.equipos);
+  llenarSectores($("n-eq"));
   var nombres=["Todos"], i;
   for(i=0;i<CONFIG.tecnicos.length;i++){ if(!CONFIG.tecnicos[i].puedeCargar) nombres.push(CONFIG.tecnicos[i].nombre); }
   $("n-para").innerHTML="";
@@ -848,7 +996,10 @@ function enviarParte(){
 
   var txt = "📋 *PARTE DE TURNO*\n" + SES.nombre + " · " + fechaLarga() + "\n\n";
   for(i=0;i<mios.length;i++){ var d=mios[i].datos;
-    txt += "• " + d.equipo + ": " + d.que_pasaba + " — *" + (d.tipo_cierre==="definitivo"?"Definitivo":"Provisorio") + "*\n";
+    if(d.clase==="rutina") txt += "• Control " + d.equipo + ": " + d.que_hiciste + " — " + (d.como_quedo==="Todo en orden"?"OK":"*"+d.como_quedo+"*") + "\n";
+    else if(d.clase==="tarea") txt += "• " + d.equipo + ": " + d.que_hiciste + " — *" + (d.tipo_cierre==="terminado"?"Terminado":"En curso") + "*" + (d.proyecto?" ("+d.proyecto+")":"") + "\n";
+    else if(d.clase==="soporte") txt += "• Soporte: " + d.que_hiciste + "\n";
+    else txt += "• " + d.equipo + ": " + (d.que_pasaba||d.que_hiciste) + " — *" + (d.tipo_cierre==="definitivo"?"Definitivo":"Provisorio") + "*\n";
   }
   txt += "\n- fin del reporte";
 
@@ -879,7 +1030,14 @@ function refrescarHoy(){
   $("lista-hoy").innerHTML=h;
 }
 function resumenItem(r){
-  if(r.tipo==="trabajo") return { linea:(r.datos.equipo||"")+": "+r.datos.que_hiciste, meta:"→ "+r.datos.como_quedo+" · "+r.datos.tipo_cierre+" · "+r.datos.inicio+"–"+r.datos.fin+" ("+r.datos.duracion_min+" min)" };
+  if(r.tipo==="trabajo"){
+    var d0=r.datos, et={reparacion:"🔧",rutina:"🔁",tarea:"🛠",soporte:"🤝"}[d0.clase]||"🛠";
+    var meta="";
+    if(d0.clase==="soporte") meta=d0.inicio+"–"+d0.fin;
+    else if(d0.clase==="rutina") meta="→ "+d0.como_quedo+" · "+d0.inicio+"–"+d0.fin;
+    else meta="→ "+d0.como_quedo+" · "+(d0.tipo_cierre||"")+(d0.proyecto?" · "+d0.proyecto:"")+" · "+d0.inicio+"–"+d0.fin+" ("+d0.duracion_min+" min)";
+    return { linea:et+" "+(d0.equipo||"")+": "+d0.que_hiciste, meta:meta };
+  }
   if(r.tipo==="falla")   return { linea:(r.datos.equipo||"")+": "+r.datos.que_viste, meta:"→ "+etiquetaEstado(r.datos.estado)+(r.datos.urgencia==="urgente"?" · URGENTE":"") };
   return { linea:"Ronda completa", meta:r.datos.puntos.length+" registros" };
 }
@@ -888,6 +1046,165 @@ function etiquetaEstado(e){ return {anda:"Anda pero hay que verlo",fuera:"No and
 /* ---------------- modales ---------------- */
 function cerrarModales(){ var m=document.querySelectorAll(".modal-fondo"), i; for(i=0;i<m.length;i++) m[i].className="modal-fondo"; }
 function abrir(id){ $(id).className="modal-fondo visible"; }
+
+/* ---------------- CLASES DE TRABAJO ---------------- */
+function abrirTrabajo(){ abrir("m-clase"); }  // el botón principal abre el selector
+
+function abrirClase(c){
+  cerrarModales();
+  if(c==="rep"){ abrirReparacion(); }
+  else if(c==="rut"){
+    llenarSectores($("rut-eq"));
+    $("rut-otros").value=""; $("rut-otros-box").style.display="none";
+    $("rut-desc").value=""; $("rut-vio").value="";
+    rutOrdenSel=null; rutUrgSel=null;
+    $("rut-si").className="chip"; $("rut-no").className="chip";
+    $("rut-esp").className="chip"; $("rut-urg").className="chip";
+    $("rut-novedad").style.display="none";
+    $("rut-ini").value=ahoraHHMM(); $("rut-fin").value=""; $("rut-error").textContent="";
+    abrir("m-rutina");
+  }
+  else if(c==="tar"){
+    llenarSectores($("tar-eq"));
+    $("tar-otros").value=""; $("tar-otros-box").style.display="none";
+    $("tar-hizo").value=""; $("tar-quedo").value=""; $("tar-proy").value="";
+    tarEstadoSel=null;
+    $("tar-term").className="chip"; $("tar-curso").className="chip";
+    $("tar-ini").value=ahoraHHMM(); $("tar-fin").value=""; $("tar-error").textContent="";
+    var ps=proyectos(), h="", i;
+    for(i=0;i<ps.length;i++) h+="<option value='"+ps[i]+"'>";
+    $("tar-proys").innerHTML=h;
+    abrir("m-tarea");
+  }
+  else if(c==="sop"){
+    $("sop-desc").value="";
+    $("sop-ini").value=ahoraHHMM(); $("sop-fin").value=""; $("sop-error").textContent="";
+    abrir("m-soporte");
+  }
+}
+
+/* ---- rutina ---- */
+var rutOrdenSel=null, rutUrgSel=null;
+function ordenRutina(v){
+  rutOrdenSel=v;
+  $("rut-si").className="chip"+(v==="si"?" on":"");
+  $("rut-no").className="chip"+(v==="no"?" on":"");
+  $("rut-novedad").style.display=(v==="no")?"block":"none";
+}
+function selUrgRutina(v){
+  rutUrgSel=v;
+  $("rut-esp").className="chip"+(v==="puede_esperar"?" on":"");
+  $("rut-urg").className="chip"+(v==="urgente"?" on":"");
+}
+function guardarRutina(){
+  if(frenar()) return;
+  var eq=equipoFinal("rut"), desc=val("rut-desc"), ini=$("rut-ini").value, fin=$("rut-fin").value;
+  if(!$("rut-eq").value){ $("rut-error").textContent="Elegí el sector."; return; }
+  if(!eq){ $("rut-error").textContent="Especificá dónde fue (elegiste Otros)."; return; }
+  if(!desc){ $("rut-error").textContent="Escribí qué controlaste."; return; }
+  if(!rutOrdenSel){ $("rut-error").textContent="¿Todo en orden? Sí o No."; return; }
+  var vio="", urg="";
+  if(rutOrdenSel==="no"){
+    vio=val("rut-vio"); urg=rutUrgSel;
+    if(!vio){ $("rut-error").textContent="Escribí qué viste mal."; return; }
+    if(!urg){ $("rut-error").textContent="¿Urge?"; return; }
+  }
+  if(!ini||!fin){ $("rut-error").textContent="Cargá inicio y fin."; return; }
+  var durMin=diffMin(ini,fin);
+  if(durMin===0){ $("rut-error").textContent="Inicio y fin son iguales. Cargá la hora real de fin."; return; }
+  recordarSector($("rut-eq").value);
+  registrar("trabajo", { clase:"rutina", equipo:eq, que_pasaba:"", que_hiciste:desc,
+    como_quedo:(rutOrdenSel==="si"?"Todo en orden":"Novedad: "+vio),
+    novedad:vio, urgencia:urg, repuesto:"", tipo_cierre:"", proyecto:"",
+    inicio:ini, fin:fin, duracion_min:durMin, tarea_id:"" });
+  cerrarModales();
+  toast(rutOrdenSel==="si"?"✓ Control guardado":"✓ Guardado — la novedad fue al backlog","ok");
+}
+
+/* ---- tarea / mejora ---- */
+var tarEstadoSel=null;
+function proyectos(){ try{ return JSON.parse(localStorage.getItem("pmos_proyectos")||"[]"); }catch(e){ return []; } }
+function selEstTarea(v){
+  tarEstadoSel=v;
+  $("tar-term").className="chip"+(v==="terminado"?" on":"");
+  $("tar-curso").className="chip"+(v==="en curso"?" on":"");
+}
+function guardarTarea(){
+  if(frenar()) return;
+  var eq=equipoFinal("tar"), hizo=val("tar-hizo"), quedo=val("tar-quedo"),
+      proy=val("tar-proy"), ini=$("tar-ini").value, fin=$("tar-fin").value;
+  if(!$("tar-eq").value){ $("tar-error").textContent="Elegí el sector."; return; }
+  if(!eq){ $("tar-error").textContent="Especificá dónde fue (elegiste Otros)."; return; }
+  if(!hizo){ $("tar-error").textContent="Escribí qué hiciste."; return; }
+  if(!quedo){ $("tar-error").textContent="Escribí cómo quedó o qué falta."; return; }
+  var qN=quedo.toLowerCase().replace(/[.\s]/g,"");
+  if(quedo.length<8 || /^(ok|bien|listo|echo|hecho|fijo|joya|okey)$/.test(qN)){
+    $("tar-error").textContent="Contá un poco más: ¿qué falta? ¿cómo siguió?"; return;
+  }
+  if(!tarEstadoSel){ $("tar-error").textContent="¿Terminado o sigue en curso?"; return; }
+  if(!ini||!fin){ $("tar-error").textContent="Cargá inicio y fin."; return; }
+  var durMin=diffMin(ini,fin);
+  if(durMin===0){ $("tar-error").textContent="Inicio y fin son iguales. Cargá la hora real de fin."; return; }
+  if(durMin>240){
+    var hs=Math.floor(durMin/60), ms=durMin%60;
+    if(!window.confirm("La duración da "+hs+" h "+ms+" min. ¿Es correcto?")){
+      $("tar-error").textContent="Revisá las horas."; return; }
+  }
+  if(proy){
+    var ps=proyectos();
+    if(ps.indexOf(proy)<0){ ps.unshift(proy); localStorage.setItem("pmos_proyectos", JSON.stringify(ps.slice(0,6))); }
+  }
+  recordarSector($("tar-eq").value);
+  registrar("trabajo", { clase:"tarea", equipo:eq, que_pasaba:"", que_hiciste:hizo, como_quedo:quedo,
+    repuesto:"", tipo_cierre:tarEstadoSel, proyecto:proy,
+    inicio:ini, fin:fin, duracion_min:durMin, tarea_id:"" });
+  cerrarModales(); toast("✓ Tarea guardada"+(proy?" · Proyecto "+proy:""),"ok");
+}
+
+/* ---- soporte ---- */
+function guardarSoporte(){
+  if(frenar()) return;
+  var desc=val("sop-desc"), ini=$("sop-ini").value, fin=$("sop-fin").value;
+  if(!desc){ $("sop-error").textContent="Escribí qué fue."; return; }
+  if(!ini||!fin){ $("sop-error").textContent="Cargá inicio y fin."; return; }
+  var durMin=diffMin(ini,fin);
+  if(durMin===0){ $("sop-error").textContent="Inicio y fin son iguales. Cargá la hora real de fin."; return; }
+  registrar("trabajo", { clase:"soporte", equipo:"Soporte / No técnico", que_pasaba:"", que_hiciste:desc,
+    como_quedo:"", repuesto:"", tipo_cierre:"", proyecto:"",
+    inicio:ini, fin:fin, duracion_min:durMin, tarea_id:"" });
+  cerrarModales(); toast("✓ Guardado","ok");
+}
+
+/* ---------------- FOTO (comprimida; viaja solo con señal) ---------------- */
+var fotos={};
+function fotoElegida(inp, pref){
+  var file=inp.files && inp.files[0]; if(!file) return;
+  var rd=new FileReader();
+  rd.onload=function(ev){
+    var img=new Image();
+    img.onload=function(){
+      var mx=1024, w=img.width, h=img.height;
+      if(w>mx){ h=Math.round(h*mx/w); w=mx; }
+      var c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      fotos[pref]=c.toDataURL("image/jpeg",0.72).split(",")[1]; // base64 pelado
+      $(pref+"-img").src="data:image/jpeg;base64,"+fotos[pref];
+      $(pref+"-prev").style.display="block";
+    };
+    img.src=ev.target.result;
+  };
+  rd.readAsDataURL(file);
+}
+function quitarFoto(pref){
+  fotos[pref]=null;
+  var p=$(pref+"-prev"); if(p) p.style.display="none";
+  var i=$(pref+"-file"); if(i) i.value="";
+}
+function fotoParaEnvio(pref){
+  if(!fotos[pref]) return "";
+  if(!navigator.onLine){ toast("Sin señal: el registro viaja, la foto no se pudo adjuntar",""); return ""; }
+  return fotos[pref];
+}
 
 /* "Otros" pide especificar dónde */
 function chkOtros(pref){
@@ -909,9 +1226,10 @@ function selCierre(v){
   $("t-cierre-def").className="chip"+(v==="definitivo"?" on":"");
   $("t-cierre-prov").className="chip"+(v==="provisorio"?" on":"");
 }
-function abrirTrabajo(){
+function abrirReparacion(){
   tareaEnCierre=null; // trabajo suelto, sin tarea vinculada
-  llenarSelect($("t-eq"), CONFIG.equipos);
+  llenarSectores($("t-eq"));
+  quitarFoto("t");
   $("t-pasaba").value=""; $("t-desc").value=""; $("t-quedo").value=""; $("t-rep").value=""; $("t-error").textContent="";
   $("t-otros").value=""; $("t-otros-box").style.display="none";
   cierreSel=null; $("t-cierre-def").className="chip"; $("t-cierre-prov").className="chip";
@@ -947,8 +1265,10 @@ function guardarTrabajo(){
       $("t-error").textContent="Revis\u00e1 las horas de inicio y fin."; return;
     }
   }
-  registrar("trabajo", { equipo:eq, que_pasaba:pasaba, que_hiciste:desc, como_quedo:quedo,
-    repuesto:rep, tipo_cierre:cierreSel, inicio:ini, fin:fin, duracion_min:durMin,
+  recordarSector($("t-eq").value);
+  registrar("trabajo", { clase:"reparacion", equipo:eq, que_pasaba:pasaba, que_hiciste:desc, como_quedo:quedo,
+    repuesto:rep, tipo_cierre:cierreSel, proyecto:"", foto_b64:fotoParaEnvio("t"),
+    inicio:ini, fin:fin, duracion_min:durMin,
     tarea_id:(tareaEnCierre||"") });
   // si venía de una tarea tomada, cerrarla en el backlog (con o sin señal)
   if(tareaEnCierre){
@@ -973,7 +1293,8 @@ function selUrgFalla(v){
   $("f-urg-urg").className="chip"+(v==="urgente"?" on":"");
 }
 function abrirFalla(){
-  llenarSelect($("f-eq"), CONFIG.equipos);
+  llenarSectores($("f-eq"));
+  quitarFoto("f");
   $("f-vio").value=""; $("f-error").textContent="";
   $("f-otros").value=""; $("f-otros-box").style.display="none";
   fEstadoSel=null; fUrgSel=null;
@@ -989,7 +1310,8 @@ function guardarFalla(){
   if(!vio){ $("f-error").textContent="Escrib&iacute; qu&eacute; viste mal."; return; }
   if(!fEstadoSel){ $("f-error").textContent="Eleg&iacute; c&oacute;mo est&aacute;."; return; }
   if(!fUrgSel){ $("f-error").textContent="Eleg&iacute; si urge."; return; }
-  registrar("falla", { equipo:eq, que_viste:vio, estado:fEstadoSel, urgencia:fUrgSel });
+  recordarSector($("f-eq").value);
+  registrar("falla", { equipo:eq, que_viste:vio, estado:fEstadoSel, urgencia:fUrgSel, foto_b64:fotoParaEnvio("f") });
   cerrarModales(); toast("✓ Falla registrada en el backlog","ok");
 }
 function val(id){ return $(id).value.replace(/^\s+|\s+$/g,""); }

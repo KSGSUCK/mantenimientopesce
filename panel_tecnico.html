@@ -112,6 +112,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .clase.c3{border-left:5px solid #F2B33D}.clase.c4{border-left:5px solid #46D68C}
 /* foto */
 .foto-row{display:flex;align-items:center;gap:10px}
+.tarea-foto{display:block;margin-top:8px;border-radius:10px;overflow:hidden;border:1px solid #24364A;line-height:0}
+.tarea-foto img{width:100%;max-height:180px;object-fit:cover;display:block}
+.tarea-foto .foto-tag{display:block;line-height:1.4;font-size:11px;color:#7E93A8;padding:4px 8px;background:#0F1B27}
 .btn-foto{flex:1;border:1.5px dashed #2A3B4C;background:none;border-radius:11px;padding:13px;color:#7E93A8;font-size:14px;font-weight:600}
 .foto-prev{display:none;position:relative;width:74px;height:74px;border-radius:11px;overflow:hidden;border:1px solid #24364A}
 .foto-prev img{width:100%;height:100%;object-fit:cover}
@@ -783,6 +786,15 @@ function chipEdad(t){
   return "<span class='age ok'>hace "+t.dias_abierta+" d</span>";
 }
 
+function fotoTarjeta(t){
+  if(!t.foto_mini) return "";
+  var link = t.foto || t.foto_mini;
+  return "<a class='tarea-foto' href='"+link+"' target='_blank' rel='noopener'>"+
+         "<img src='"+t.foto_mini+"' loading='lazy' alt='Foto de la falla' "+
+         "onerror=\"this.parentNode.style.display='none'\">"+
+         "<span class='foto-tag'>📷 Tocá para ver la foto completa</span></a>";
+}
+
 function ordenarTareas(a,b){
   var va=(a.dias_restantes!==null&&a.dias_restantes<0)?1:0, vb=(b.dias_restantes!==null&&b.dias_restantes<0)?1:0;
   if(va!==vb) return vb-va;
@@ -823,6 +835,7 @@ function renderTareas(disp, mias){
       h+="<div class='tarea-card"+(t.prioridad==="Alta"?" pri-alta":"")+((t.dias_restantes!==null&&t.dias_restantes<0)?" vencida":"")+"'>";
       h+="<div class='tarea-top'><span class='tarea-sector'>"+t.sector+"</span>"+chipEdad(t)+"</div>";
       h+="<div class='tarea-desc'>"+t.desc+"</div>";
+      h+=fotoTarjeta(t);
       h+="<div class='fila-cierre'>";
       h+="<button class='btn-hecha' onclick='cerrarConTrabajo(\""+t.id+"\")'>\u2713 Cerrar tarea</button>";
       h+="<button class='btn-repuesto' onclick='mostrarRep(\""+t.id+"\")'>📦 Falta repuesto</button>";
@@ -846,6 +859,7 @@ function renderTareas(disp, mias){
       h+="<div class='tarea-card"+(t.prioridad==="Alta"?" pri-alta":"")+((t.dias_restantes!==null&&t.dias_restantes<0)?" vencida":"")+"'>";
       h+="<div class='tarea-top'><span class='tarea-sector'>"+t.sector+"</span>"+chipEdad(t)+"</div>";
       h+="<div class='tarea-desc'>"+t.desc+"</div>";
+      h+=fotoTarjeta(t);
       if(t.prioridad==="Alta") h+="<div class='tarea-meta'>🔴 Prioridad alta</div>";
       h+="<button class='btn-tomar' onclick='tomarTarea(\""+t.id+"\")'>Tomar esta tarea</button>";
       h+="</div>";

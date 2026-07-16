@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0F1B27">
+<title>PMOS · Producción</title>
+<style>
+/* =====================================================================
+   PMOS Producción — mismo lenguaje visual que el panel técnico.
+   Reportar un problema en 5 toques: foto, sector, qué pasa, urgencia, enviar.
+   ===================================================================== */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:#0F1B27;color:#E8F0F6;font-size:16px}
+.pantalla{display:none;min-height:100%;padding:18px 16px 40px;max-width:520px;margin:0 auto}
+.pantalla.visible{display:block}
+h1{font-size:21px;margin-bottom:4px}
+h2{font-size:16px;color:#9DB2C6;margin:18px 0 10px}
+h3{font-size:18px;margin-bottom:4px}
+.sub{color:#7E93A8;font-size:14px;margin-bottom:14px}
+small{color:#7E93A8}
+
+/* login */
+.nom-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.nom-grid button{flex:1 1 45%;padding:22px 10px;font-size:18px;font-weight:700;background:#16222F;color:#E8F0F6;border:1px solid #24364A;border-radius:14px}
+.nom-grid button:active{border-color:#FFB020}
+
+/* home */
+.hola{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.hola .salir{background:none;border:none;color:#56697C;font-size:13px;text-decoration:underline}
+.accion{display:flex;align-items:center;gap:14px;width:100%;background:#16222F;border:1px solid #24364A;border-radius:14px;padding:18px 15px;margin-bottom:12px;color:#E8F0F6;text-align:left}
+.accion:active{border-color:#FFB020}
+.accion .ic{font-size:26px}
+.accion .tx b{display:block;font-size:16px}
+.accion .tx small{display:block;font-size:13px;margin-top:2px}
+.accion.rep{border-left:5px solid #FFB020}
+.accion.mis{border-left:5px solid #4FD8E0}
+.pie{text-align:center;color:#3A4C5E;font-size:12px;margin-top:30px}
+
+/* modales */
+.modal-fondo{display:none;position:fixed;inset:0;background:rgba(5,12,19,.86);z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-fondo.abierto{display:block}
+.modal{max-width:520px;margin:16px auto;background:#101D2B;border:1px solid #22334A;border-radius:16px;padding:18px 16px 22px}
+.campo{margin-bottom:15px}
+label{display:block;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#7E93A8;font-weight:700;margin-bottom:7px}
+.obl{color:#FFB020}
+select,textarea,input[type=text]{width:100%;background:#0C1622;border:1px solid #24364A;border-radius:11px;color:#E8F0F6;padding:13px;font-size:16px;font-family:inherit}
+textarea{min-height:92px;resize:vertical}
+select:focus,textarea:focus{outline:none;border-color:#FFB020}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{border:1.5px solid #2A3B4C;border-radius:22px;padding:11px 15px;font-size:14px;font-weight:600;color:#9DB2C6}
+.chip.on{border-color:#FFB020;color:#FFB020;background:rgba(255,176,32,.08)}
+.chip.on.frena{border-color:#FF4D5E;color:#FF4D5E;background:rgba(255,77,94,.08)}
+.chip.on.espera{border-color:#46D68C;color:#46D68C;background:rgba(70,214,140,.08)}
+.btn{display:block;width:100%;border:none;border-radius:13px;padding:16px;font-size:17px;font-weight:700;margin-top:6px}
+.btn-amber{background:#FFB020;color:#1A1206}
+.btn-amber:disabled{background:#3A4C5E;color:#7E93A8}
+.btn-gris{display:block;width:100%;background:none;border:none;color:#7E93A8;padding:14px;font-size:15px;margin-top:4px;text-decoration:underline}
+.aviso-error{color:#FF4D5E;font-size:14px;min-height:20px;margin-bottom:4px}
+
+/* foto: primero y grande */
+.btn-foto-g{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;min-height:110px;border:2px dashed #3A4C5E;background:none;border-radius:14px;color:#9DB2C6;font-size:16px;font-weight:700}
+.btn-foto-g small{font-weight:400;font-size:12.5px}
+.foto-prev{display:none;position:relative;border-radius:14px;overflow:hidden;border:1px solid #24364A}
+.foto-prev img{width:100%;max-height:230px;object-fit:cover;display:block}
+.foto-x{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.72);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:15px}
+.sin-foto-link{display:block;text-align:center;color:#56697C;font-size:13px;margin-top:8px;text-decoration:underline;background:none;border:none;width:100%}
+.sin-foto-on{color:#FFB020}
+
+/* mis reportes */
+.rep-card{background:#16222F;border:1px solid #24364A;border-radius:13px;padding:13px;margin-bottom:11px}
+.rep-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.rep-sector{font-weight:700;font-size:15px}
+.rep-fecha{color:#56697C;font-size:12px}
+.rep-desc{font-size:14.5px;color:#C7D6E4;margin:4px 0 8px}
+.rep-foto{display:block;border-radius:10px;overflow:hidden;border:1px solid #24364A;margin-bottom:8px;line-height:0}
+.rep-foto img{width:100%;max-height:150px;object-fit:cover}
+.est{display:inline-block;border-radius:16px;padding:5px 12px;font-size:13px;font-weight:700}
+.est-pend{background:rgba(79,216,224,.1);color:#4FD8E0;border:1px solid rgba(79,216,224,.4)}
+.est-ot{background:rgba(255,176,32,.1);color:#FFB020;border:1px solid rgba(255,176,32,.4)}
+.est-res{background:rgba(70,214,140,.1);color:#46D68C;border:1px solid rgba(70,214,140,.4)}
+.est-desc{background:rgba(126,147,168,.1);color:#7E93A8;border:1px solid rgba(126,147,168,.4)}
+.rep-motivo{font-size:13px;color:#7E93A8;margin-top:6px}
+.rep-vacio{text-align:center;color:#56697C;padding:30px 0;font-size:15px}
+
+#toast{display:none;position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#16222F;border:1px solid #24364A;color:#E8F0F6;padding:13px 20px;border-radius:12px;font-size:15px;z-index:99;max-width:90%;text-align:center}
+#toast.ok{border-color:#46D68C}
+#toast.err{border-color:#FF4D5E}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="pantalla visible" id="scr-login">
+  <h1>PMOS · Producci&oacute;n</h1>
+  <div class="sub">&iquest;Qui&eacute;n sos?</div>
+  <div class="nom-grid" id="zona-nombres"></div>
+</div>
+
+<!-- ============ HOME ============ -->
+<div class="pantalla" id="scr-home">
+  <div class="hola">
+    <h1 id="home-nombre"></h1>
+    <button class="salir" onclick="salir()">Cambiar</button>
+  </div>
+  <div class="sub">Si ves algo roto, que pierde, que hace ruido o que necesita mantenimiento: report&aacute;lo ac&aacute; y llega a mantenimiento.</div>
+
+  <button class="accion rep" onclick="abrirReporte()">
+    <span class="ic">🚨</span><span class="tx"><b>Reportar un problema</b><small>Foto + d&oacute;nde + qu&eacute; pasa. 30 segundos.</small></span></button>
+
+  <button class="accion mis" onclick="abrirMis()">
+    <span class="ic">📋</span><span class="tx"><b>Mis reportes</b><small>Ver en qu&eacute; est&aacute; cada cosa que reportaste</small></span></button>
+
+  <div class="pie">PMOS · Pesce Frutos del Mar</div>
+</div>
+
+<!-- ============ MODAL NUEVO REPORTE ============ -->
+<div class="modal-fondo" id="m-rep">
+  <div class="modal">
+    <h3>Reportar un problema</h3>
+    <div class="sub">Mantenimiento lo ve, lo eval&uacute;a y lo asigna.</div>
+
+    <div class="campo">
+      <label>Foto del problema <span class="obl">*</span></label>
+      <button class="btn-foto-g" id="r-btnfoto" onclick="document.getElementById('r-file').click();return false;">
+        <span>📷 Sacale una foto</span>
+        <small>Una foto dice m&aacute;s que cualquier descripci&oacute;n</small>
+      </button>
+      <input type="file" id="r-file" accept="image/*" capture="environment" style="display:none" onchange="fotoElegida(this)">
+      <div class="foto-prev" id="r-prev"><img id="r-img"><button class="foto-x" onclick="quitarFoto();return false;">✕</button></div>
+      <button class="sin-foto-link" id="r-sinfoto" onclick="toggleSinFoto();return false;">No se puede sacar foto</button>
+    </div>
+
+    <div class="campo">
+      <label>&iquest;D&oacute;nde? <span class="obl">*</span></label>
+      <select id="r-sector"></select>
+    </div>
+
+    <div class="campo">
+      <label>&iquest;Qu&eacute; pasa? <span class="obl">*</span></label>
+      <textarea id="r-desc" placeholder="Ej: gotea el techo de la c&aacute;mara 2 arriba de los pallets"></textarea>
+    </div>
+
+    <div class="campo">
+      <label>&iquest;Cu&aacute;nto molesta? <span class="obl">*</span></label>
+      <div class="chips">
+        <div class="chip" id="r-u-frena" onclick="selUrg('frena')">🔴 Frena la producci&oacute;n</div>
+        <div class="chip" id="r-u-molesta" onclick="selUrg('molesta')">🟡 Molesta pero seguimos</div>
+        <div class="chip" id="r-u-espera" onclick="selUrg('espera')">🟢 Para cuando puedan</div>
+      </div>
+    </div>
+
+    <div class="aviso-error" id="r-error"></div>
+    <button class="btn btn-amber" id="r-enviar" onclick="enviarReporte()">Enviar reporte</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL MIS REPORTES ============ -->
+<div class="modal-fondo" id="m-mis">
+  <div class="modal">
+    <h3>📋 Mis reportes</h3>
+    <div class="sub" id="mis-sub">Lo que reportaste y en qu&eacute; est&aacute; cada cosa.</div>
+    <div id="lista-mis"><div class="rep-vacio">Cargando&hellip;</div></div>
+    <button class="btn-gris" onclick="cerrarModales()">Cerrar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   PMOS Producción — JS vanilla ES5, Safari iOS.
+   Mismo backend (Apps Script) que el panel técnico.
+   ===================================================================== */
+var CONFIG = {
+
+  /* URL del Web App de Google Apps Script — LA MISMA del panel técnico */
+  SHEET_URL: "https://script.google.com/macros/s/AKfycbxfsE3m6JfCYspGSSI9SK8T1CgjoGzubzzvPSM3DB-v7Huf9haZUq5TG0VagDYRANIB/exec",
+
+  /* Supervisores habilitados. Piloto: Chaco.
+     Para sumar gente: agregá el nombre acá y nada más. */
+  supervisores: ["Chaco"],
+
+  /* Sectores — misma lista del panel técnico */
+  grupos: [
+    ["PRODUCCIÓN", ["Producción Grande","Producción Chica","Despacho","Kioscos","Sector Cajas","Zona de Lavado"]],
+    ["FRÍO", ["Cámara 1","Cámara 2","Cámara 3","Cámara 4","Túnel 1","Túnel 2","Central Cámara 3y4",
+              "Contenedor 1","Contenedor 2","Contenedor 3","Contenedor 4","Contenedor 5","Contenedor 6",
+              "Máquina de hielo","Zona compresores"]],
+    ["SERVICIOS", ["Bombas / Tanques de agua","Calderas / Termotanques","Tablero / Eléctrico","Iluminación"]],
+    ["EDILICIO", ["Techos","Portones / Puertas","Sanitarios / Plomería","Oficinas / Server","Zona de Basura"]],
+    ["OTROS", ["Velez","Administración","Otros"]]
+  ]
+};
+
+var SES = { nombre: null };
+var PEND_KEY = "pmosprod_pendientes";
+var NOM_KEY = "pmosprod_nombre";
+
+function $(id){ return document.getElementById(id); }
+function toast(msg, tipo){
+  var t=$("toast"); t.textContent=msg; t.className=(tipo||""); t.style.display="block";
+  setTimeout(function(){ t.style.display="none"; }, 2800);
+}
+function uid(){ return Date.now()+"-"+Math.random().toString(36).slice(2,8); }
+
+/* anti doble-toque */
+var _lock=false;
+function frenar(){
+  if(_lock) return true;
+  _lock=true; setTimeout(function(){ _lock=false; }, 1200);
+  return false;
+}
+
+/* ---------------- login ---------------- */
+function pintarNombres(){
+  var h="", i;
+  for(i=0;i<CONFIG.supervisores.length;i++)
+    h+="<button onclick=\"entrar('"+CONFIG.supervisores[i]+"')\">"+CONFIG.supervisores[i]+"</button>";
+  $("zona-nombres").innerHTML=h;
+}
+function entrar(nombre){
+  SES.nombre=nombre;
+  try{ localStorage.setItem(NOM_KEY, nombre); }catch(e){}
+  $("scr-login").className="pantalla"; $("scr-home").className="pantalla visible";
+  $("home-nombre").textContent="Hola, "+nombre;
+  enviarPendientes();
+}
+function salir(){
+  SES.nombre=null;
+  try{ localStorage.removeItem(NOM_KEY); }catch(e){}
+  $("scr-home").className="pantalla"; $("scr-login").className="pantalla visible";
+}
+
+/* ---------------- modales ---------------- */
+function abrir(id){ $(id).className="modal-fondo abierto"; window.scrollTo(0,0); }
+function cerrarModales(){
+  var m=document.querySelectorAll(".modal-fondo"), i;
+  for(i=0;i<m.length;i++) m[i].className="modal-fondo";
+}
+
+/* ---------------- sectores ---------------- */
+function llenarSectores(sel){
+  var h="<option value=''>— elegí —</option>", i, j;
+  var r=recSectores();
+  if(r.length){ h+="<optgroup label='— ÚLTIMOS QUE USASTE —'>";
+    for(i=0;i<r.length;i++) h+="<option>"+r[i]+"</option>"; h+="</optgroup>"; }
+  for(i=0;i<CONFIG.grupos.length;i++){
+    h+="<optgroup label='— "+CONFIG.grupos[i][0]+" —'>";
+    for(j=0;j<CONFIG.grupos[i][1].length;j++) h+="<option>"+CONFIG.grupos[i][1][j]+"</option>";
+    h+="</optgroup>";
+  }
+  sel.innerHTML=h;
+}
+function recSectores(){ try{ return JSON.parse(localStorage.getItem("pmosprod_sec_"+(SES.nombre||""))||"[]"); }catch(e){ return []; } }
+function recordarSector(sec){
+  if(!sec||sec==="Otros"||!SES.nombre) return;
+  var r=recSectores().filter(function(x){return x!==sec;});
+  r.unshift(sec);
+  try{ localStorage.setItem("pmosprod_sec_"+SES.nombre, JSON.stringify(r.slice(0,3))); }catch(e){}
+}
+
+/* ---------------- foto (comprimida en el cliente) ---------------- */
+var fotoB64=null, sinFoto=false;
+function fotoElegida(inp){
+  var file=inp.files && inp.files[0]; if(!file) return;
+  var rd=new FileReader();
+  rd.onload=function(ev){
+    var img=new Image();
+    img.onload=function(){
+      var mx=1024, w=img.width, h=img.height;
+      if(w>mx){ h=Math.round(h*mx/w); w=mx; }
+      var c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      fotoB64=c.toDataURL("image/jpeg",0.72).split(",")[1];
+      $("r-img").src="data:image/jpeg;base64,"+fotoB64;
+      $("r-prev").style.display="block";
+      $("r-btnfoto").style.display="none";
+      sinFoto=false; pintarSinFoto();
+    };
+    img.src=ev.target.result;
+  };
+  rd.readAsDataURL(file);
+}
+function quitarFoto(){
+  fotoB64=null;
+  $("r-prev").style.display="none";
+  $("r-btnfoto").style.display="flex";
+  $("r-file").value="";
+}
+function toggleSinFoto(){
+  sinFoto=!sinFoto;
+  if(sinFoto) quitarFoto();
+  pintarSinFoto();
+}
+function pintarSinFoto(){
+  $("r-sinfoto").className="sin-foto-link"+(sinFoto?" sin-foto-on":"");
+  $("r-sinfoto").textContent = sinFoto ? "✓ Va sin foto (tocá para cambiar)" : "No se puede sacar foto";
+}
+
+/* ---------------- nuevo reporte ---------------- */
+var urgSel=null;
+function selUrg(v){
+  urgSel=v;
+  $("r-u-frena").className   = "chip"+(v==="frena"  ? " on frena"  : "");
+  $("r-u-molesta").className = "chip"+(v==="molesta"? " on"        : "");
+  $("r-u-espera").className  = "chip"+(v==="espera" ? " on espera" : "");
+}
+function abrirReporte(){
+  llenarSectores($("r-sector"));
+  $("r-desc").value=""; $("r-error").textContent="";
+  urgSel=null; selUrg("");
+  quitarFoto(); sinFoto=false; pintarSinFoto();
+  abrir("m-rep");
+}
+function enviarReporte(){
+  if(frenar()) return;
+  var sec=$("r-sector").value, desc=($("r-desc").value||"").trim();
+  if(!fotoB64 && !sinFoto){ $("r-error").textContent="Sacale una foto (o marc\u00e1 que no se puede)."; return; }
+  if(!sec){ $("r-error").textContent="Eleg\u00ed d\u00f3nde es."; return; }
+  if(!desc){ $("r-error").textContent="Cont\u00e1 qu\u00e9 pasa."; return; }
+  if(!urgSel){ $("r-error").textContent="Marc\u00e1 cu\u00e1nto molesta."; return; }
+  var reg={ uid:uid(), tipo:"reporteProduccion", supervisor:SES.nombre,
+            datos:{ sector:sec, desc:desc, urgencia:urgSel, foto_b64:fotoB64||"" } };
+  recordarSector(sec);
+  encolar(reg);
+  cerrarModales();
+  if(navigator.onLine){
+    toast("\u2713 Reporte enviado. Mantenimiento lo va a ver.","ok");
+  } else {
+    toast("Sin se\u00f1al: qued\u00f3 guardado y se env\u00eda solo al recuperar conexi\u00f3n","");
+  }
+  enviarPendientes();
+}
+
+/* ---------------- cola offline ---------------- */
+function pendientes(){ try{ return JSON.parse(localStorage.getItem(PEND_KEY)||"[]"); }catch(e){ return []; } }
+function guardarPend(arr){
+  try{ localStorage.setItem(PEND_KEY, JSON.stringify(arr)); }
+  catch(e){
+    // sin espacio (fotos grandes acumuladas): reintenta sin la foto del último
+    var i; for(i=0;i<arr.length;i++){ if(arr[i].datos) arr[i].datos.foto_b64=""; }
+    try{ localStorage.setItem(PEND_KEY, JSON.stringify(arr)); toast("Poco espacio: el reporte viaja, la foto no","" ); }catch(e2){}
+  }
+}
+function encolar(reg){ var p=pendientes(); p.push(reg); guardarPend(p); }
+var enviando=false;
+function enviarPendientes(){
+  if(enviando||!navigator.onLine||!CONFIG.SHEET_URL) return;
+  var p=pendientes(); if(!p.length) return;
+  enviando=true;
+  var reg=p[0];
+  var x=new XMLHttpRequest();
+  x.open("POST",CONFIG.SHEET_URL,true);
+  x.setRequestHeader("Content-Type","text/plain;charset=utf-8");
+  x.timeout=45000;
+  x.onload=function(){
+    enviando=false;
+    if(String(x.responseText).indexOf("OK")===0){
+      var q=pendientes(); q.shift(); guardarPend(q);
+      enviarPendientes(); // siguiente de la cola
+    }
+  };
+  x.onerror=function(){ enviando=false; };
+  x.ontimeout=function(){ enviando=false; };
+  x.send(JSON.stringify(reg));
+}
+window.addEventListener("online", enviarPendientes);
+
+/* ---------------- mis reportes ---------------- */
+function abrirMis(){
+  $("lista-mis").innerHTML="<div class='rep-vacio'>Cargando&hellip;</div>";
+  abrir("m-mis");
+  if(!navigator.onLine){
+    $("lista-mis").innerHTML="<div class='rep-vacio'>Sin se\u00f1al — prob\u00e1 de nuevo con conexi\u00f3n.</div>";
+    return;
+  }
+  var url=CONFIG.SHEET_URL+"?action=getMisReportes&supervisor="+encodeURIComponent(SES.nombre)+"&ts="+Date.now();
+  var x=new XMLHttpRequest();
+  x.open("GET",url,true); x.timeout=30000;
+  x.onload=function(){
+    try{
+      var res=JSON.parse(x.responseText);
+      renderMis(res && res.reportes ? res.reportes : []);
+    }catch(e){ $("lista-mis").innerHTML="<div class='rep-vacio'>No se pudo cargar. Prob\u00e1 de nuevo.</div>"; }
+  };
+  x.onerror=function(){ $("lista-mis").innerHTML="<div class='rep-vacio'>No se pudo cargar. Prob\u00e1 de nuevo.</div>"; };
+  x.send();
+}
+function chipEstado(e){
+  if(e==="Resuelto")        return "<span class='est est-res'>✅ Resuelto</span>";
+  if(e==="Convertido a OT") return "<span class='est est-ot'>🔧 En manos de mantenimiento</span>";
+  if(e==="Descartado")      return "<span class='est est-desc'>👁 Revisado — sin OT</span>";
+  return "<span class='est est-pend'>📨 Recibido</span>";
+}
+function renderMis(reps){
+  var pendLocal=pendientes().length;
+  var h="", i, r;
+  if(pendLocal) h+="<div class='rep-vacio'>⏳ "+pendLocal+" reporte(s) esperando se\u00f1al para enviarse</div>";
+  if(!reps.length && !pendLocal){
+    h="<div class='rep-vacio'>Todav\u00eda no reportaste nada.</div>";
+  }
+  for(i=0;i<reps.length;i++){ r=reps[i];
+    h+="<div class='rep-card'>";
+    h+="<div class='rep-top'><span class='rep-sector'>"+r.sector+"</span><span class='rep-fecha'>"+r.fecha+"</span></div>";
+    h+="<div class='rep-desc'>"+r.desc+"</div>";
+    if(r.foto_mini) h+="<span class='rep-foto'><img src='"+r.foto_mini+"' loading='lazy' onerror=\"this.parentNode.style.display='none'\"></span>";
+    h+=chipEstado(r.estado);
+    if(r.estado==="Descartado" && r.motivo) h+="<div class='rep-motivo'>Motivo: "+r.motivo+"</div>";
+    h+="</div>";
+  }
+  $("lista-mis").innerHTML=h;
+}
+
+/* ---------------- arranque ---------------- */
+pintarNombres();
+(function(){
+  var n=null; try{ n=localStorage.getItem(NOM_KEY); }catch(e){}
+  if(n && CONFIG.supervisores.indexOf(n)>=0) entrar(n);
+  else if(CONFIG.supervisores.length===1) entrar(CONFIG.supervisores[0]); // piloto: entra directo
+})();
+</script>
+</body>
+</html>

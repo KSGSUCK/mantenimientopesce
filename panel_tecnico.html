@@ -115,6 +115,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .tarea-foto{display:block;margin-top:8px;border-radius:10px;overflow:hidden;border:1px solid #24364A;line-height:0}
 .tarea-foto img{width:100%;max-height:180px;object-fit:cover;display:block}
 .tarea-foto .foto-tag{display:block;line-height:1.4;font-size:11px;color:#7E93A8;padding:4px 8px;background:#0F1B27}
+/* reportes de producción */
+.rep-card{background:#16222F;border:1px solid #24364A;border-left:5px solid #FFB020;border-radius:13px;padding:13px;margin-bottom:11px}
+.rep-quien{font-size:13px;color:#9DB2C6;margin:3px 0 5px}
+.urg-frena{color:#FF4D5E;font-weight:700}
+.urg-molesta{color:#FFB020;font-weight:600}
+.urg-espera{color:#46D68C}
+.rep-vacio{text-align:center;color:#56697C;padding:26px 0;font-size:15px}
+.rep-origen{background:#1B2A1F;border:1px solid #2E4A36;border-radius:10px;padding:9px 11px;font-size:13px;color:#9DC6A8;margin-bottom:12px}
 .btn-foto{flex:1;border:1.5px dashed #2A3B4C;background:none;border-radius:11px;padding:13px;color:#7E93A8;font-size:14px;font-weight:600}
 .foto-prev{display:none;position:relative;width:74px;height:74px;border-radius:11px;overflow:hidden;border:1px solid #24364A}
 .foto-prev img{width:100%;height:100%;object-fit:cover}
@@ -262,6 +270,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
       <span class="ic">📋</span><span class="tx"><b>Hacer la ronda</b><small>Amperaje y temperatura, r&aacute;pido</small></span></button>
     <button class="accion" id="btn-nueva" style="display:none;border-left:5px solid #46D68C" onclick="abrirNueva()">
       <span class="ic">➕</span><span class="tx"><b>Cargar tarea</b><small>Asignar trabajo al equipo, con plazo</small></span></button>
+    <button class="accion" id="btn-reportes" style="display:none;border-left:5px solid #FFB020" onclick="abrirReportes()">
+      <span class="ic">📥</span><span class="tx"><b>Reportes de producci&oacute;n <span class="badge-t" id="badge-rep" style="display:none"></span></b><small>Lo que carg&oacute; producci&oacute;n: convert&iacute;s o descart&aacute;s</small></span></button>
   </div>
 
   <div class="seccion" id="sec-mias" style="display:none">
@@ -486,6 +496,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   <div class="modal">
     <h3>Cargar tarea</h3>
     <div class="sub">Le va a aparecer al equipo en &ldquo;Tareas para tomar&rdquo;.</div>
+    <div class="rep-origen" id="n-origen" style="display:none"></div>
     <div class="campo">
       <label>Sector <span class="obl">*</span></label>
       <select id="n-eq"></select>
@@ -493,6 +504,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <div class="campo">
       <label>Qu&eacute; hay que hacer <span class="obl">*</span></label>
       <textarea id="n-desc" placeholder="Ej: reparar tarimas del sector cajas"></textarea>
+    </div>
+    <div class="campo"><label>Foto <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
+      <div class="foto-row">
+        <button class="btn-foto" onclick="document.getElementById('n-file').click();return false;">📷 Sacar foto</button>
+        <input type="file" id="n-file" accept="image/*" capture="environment" style="display:none" onchange="fotoNuevaElegida(this)">
+        <div class="foto-prev" id="n-prev"><img id="n-img"><button class="foto-x" onclick="quitarFotoNueva();return false;">✕</button></div>
+      </div>
     </div>
     <div class="campo">
       <label>Para <span class="obl">*</span></label>
@@ -512,11 +530,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
         <div class="chip" id="n-pl-4" onclick="selNPlazo(4)">4 d&iacute;as</div>
         <div class="chip" id="n-pl-7" onclick="selNPlazo(7)">7 d&iacute;as</div>
         <div class="chip" id="n-pl-0" onclick="selNPlazo(0)">Sin plazo</div>
+        <div class="chip" id="n-pl-x" onclick="selNPlazo('x')">Otro&hellip;</div>
+      </div>
+      <div id="n-pl-libre" style="display:none;margin-top:8px">
+        <input type="number" id="n-pl-n" min="1" max="90" inputmode="numeric" placeholder="&iquest;Cu&aacute;ntos d&iacute;as?" style="width:140px">
       </div>
     </div>
     <div class="aviso-error" id="n-error"></div>
     <button class="btn btn-cian" onclick="guardarNueva()">Publicar tarea</button>
     <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL REPORTES DE PRODUCCIÓN (triage jefe) ============ -->
+<div class="modal-fondo" id="m-reportes">
+  <div class="modal">
+    <h3>📥 Reportes de producci&oacute;n</h3>
+    <div class="sub">Lo que carg&oacute; producci&oacute;n. Convert&iacute;s en OT o descart&aacute;s.</div>
+    <div id="lista-reportes"></div>
+    <button class="btn-gris" onclick="cerrarModales()">Cerrar</button>
   </div>
 </div>
 
@@ -745,9 +777,15 @@ function tecla(t){
 function volverANombres(){ $("zona-pin").style.display="none"; $("zona-nombres").style.display="block"; }
 function entrar(nombre){
   SES.nombre=nombre;
-  SES.puedeCargar=false;
-  var i; for(i=0;i<CONFIG.tecnicos.length;i++){ if(CONFIG.tecnicos[i].nombre===nombre && CONFIG.tecnicos[i].puedeCargar) SES.puedeCargar=true; }
+  SES.puedeCargar=false; SES.pin="";
+  var i; for(i=0;i<CONFIG.tecnicos.length;i++){
+    if(CONFIG.tecnicos[i].nombre===nombre){
+      if(CONFIG.tecnicos[i].puedeCargar) SES.puedeCargar=true;
+      SES.pin=CONFIG.tecnicos[i].pin||"";
+    }
+  }
   $("btn-nueva").style.display = SES.puedeCargar ? "flex" : "none";
+  $("btn-reportes").style.display = SES.puedeCargar ? "flex" : "none";
   $("scr-login").className="pantalla"; $("scr-home").className="pantalla visible";
   $("home-nombre").textContent=nombre;
   refrescarHoy(); enviarPendientes();
@@ -773,6 +811,7 @@ function consultarTareas(){
     try{ var res=JSON.parse(x.responseText); if(res){ renderTareas(res.disponibles||[], res.mias||[]); } }catch(e){}
   };
   x.send();
+  if(SES.puedeCargar) consultarReportes();
 }
 
 function chipEdad(t){
@@ -954,12 +993,16 @@ function postTarea(obj, cb){
 }
 
 /* ---- nueva tarea ---- */
-var nPri=null, nPlazo=null;
+var nPri=null, nPlazo=null, nFotoUrl="", nFotoMini="", nReporteId="", nOrigen="";
 function selNPri(v){ nPri=v; $("n-pri-media").className="chip"+(v==="Media"?" on":""); $("n-pri-alta").className="chip"+(v==="Alta"?" on":""); }
 function selNPlazo(v){ nPlazo=v;
-  var ids=["n-pl-2","n-pl-4","n-pl-7","n-pl-0"], vals=[2,4,7,0], i;
+  var ids=["n-pl-2","n-pl-4","n-pl-7","n-pl-0","n-pl-x"], vals=[2,4,7,0,"x"], i;
   for(i=0;i<ids.length;i++) $(ids[i]).className="chip"+(vals[i]===v?" on":"");
+  $("n-pl-libre").style.display = (v==="x") ? "block" : "none";
+  if(v==="x") $("n-pl-n").focus();
 }
+function fotoNuevaElegida(inp){ nFotoUrl=""; nFotoMini=""; fotoElegida(inp,"n"); }
+function quitarFotoNueva(){ nFotoUrl=""; nFotoMini=""; quitarFoto("n"); }
 function abrirNueva(){
   llenarSectores($("n-eq"));
   var nombres=["Todos"], i;
@@ -967,9 +1010,32 @@ function abrirNueva(){
   $("n-para").innerHTML="";
   for(i=0;i<nombres.length;i++) $("n-para").innerHTML+="<option>"+nombres[i]+"</option>";
   $("n-desc").value=""; $("n-error").textContent="";
-  nPri=null; nPlazo=null;
+  nPri=null; nPlazo=null; nReporteId=""; nOrigen="";
+  quitarFotoNueva();
+  $("n-pl-n").value="";
+  $("n-origen").style.display="none";
   selNPri(""); selNPlazo(-1);
   abrir("m-nueva");
+}
+/* abre "Cargar tarea" prellenada desde un reporte de producción */
+function abrirNuevaDesdeReporte(id){
+  var rep=null, i;
+  for(i=0;i<reportesCache.length;i++){ if(reportesCache[i].id===id) rep=reportesCache[i]; }
+  if(!rep) return;
+  abrirNueva();
+  nReporteId=rep.id;
+  nOrigen="Producci\u00f3n: "+rep.supervisor;
+  $("n-origen").style.display="block";
+  $("n-origen").innerHTML="📥 Reporte de <b>"+rep.supervisor+"</b> · "+rep.urgencia+(rep.fecha?" · "+rep.fecha:"");
+  $("n-eq").value=rep.sector;
+  if($("n-eq").value!==rep.sector){ // el sector del reporte no está en la lista: agregarlo
+    var op=document.createElement("option"); op.textContent=rep.sector; $("n-eq").appendChild(op); $("n-eq").value=rep.sector;
+  }
+  $("n-desc").value=rep.desc;
+  selNPri(rep.urgencia.indexOf("Frena")===0?"Alta":"Media");
+  if(rep.foto){ nFotoUrl=rep.foto; nFotoMini=rep.foto_mini;
+    $("n-img").src=rep.foto_mini||""; $("n-prev").style.display="block";
+  }
 }
 function guardarNueva(){
   if(frenar()) return;
@@ -978,9 +1044,81 @@ function guardarNueva(){
   if(!desc){ $("n-error").textContent="Escrib\u00ed qu\u00e9 hay que hacer."; return; }
   if(!nPri){ $("n-error").textContent="Eleg\u00ed la prioridad."; return; }
   if(nPlazo===null || nPlazo===-1){ $("n-error").textContent="Eleg\u00ed el plazo."; return; }
-  postTarea({ tipo:"nuevaTarea", sector:eq, desc:desc, para:para, prioridad:nPri, plazo_dias:nPlazo, de:SES.nombre }, function(){
-    toast("\u2713 Tarea publicada","ok");
+  var plazo=nPlazo;
+  if(nPlazo==="x"){
+    plazo=parseInt($("n-pl-n").value,10);
+    if(!plazo || plazo<1 || plazo>90){ $("n-error").textContent="Pon\u00e9 los d\u00edas (entre 1 y 90)."; return; }
+  }
+  if(!navigator.onLine){ $("n-error").textContent="Sin se\u00f1al \u2014 para publicar una tarea necesit\u00e1s conexi\u00f3n."; return; }
+  var obj={ tipo:"nuevaTarea", sector:eq, desc:desc, para:para, prioridad:nPri,
+            plazo_dias:plazo, de:SES.nombre, pin:SES.pin };
+  if(fotos["n"]) obj.foto_b64=fotoParaEnvio("n");
+  else if(nFotoUrl) obj.foto_url=nFotoUrl;
+  if(nReporteId){ obj.reporte_id=nReporteId; obj.origen=nOrigen; }
+  postTarea(obj, function(resp){
+    if(String(resp).indexOf("ERR")===0){ $("n-error").textContent="No se pudo publicar ("+resp+")"; return; }
+    toast(nReporteId?"\u2713 Reporte convertido en OT":"\u2713 Tarea publicada","ok");
     cerrarModales(); consultarTareas();
+  });
+}
+
+/* ---------------- REPORTES DE PRODUCCIÓN (triage del jefe) ---------------- */
+var reportesCache=[];
+function consultarReportes(){
+  if(!CONFIG.SHEET_URL||!navigator.onLine||!SES.puedeCargar) return;
+  var url=CONFIG.SHEET_URL+"?action=getReportesPend&pin="+encodeURIComponent(SES.pin)+"&ts="+Date.now();
+  var x=new XMLHttpRequest();
+  x.open("GET",url,true); x.timeout=30000;
+  x.onload=function(){
+    try{
+      var res=JSON.parse(x.responseText);
+      if(res && res.reportes){ reportesCache=res.reportes; pintarBadgeRep(); renderReportes(); }
+    }catch(e){}
+  };
+  x.send();
+}
+function pintarBadgeRep(){
+  var b=$("badge-rep");
+  if(reportesCache.length){ b.style.display="inline"; b.textContent=reportesCache.length; }
+  else b.style.display="none";
+}
+function abrirReportes(){
+  renderReportes();
+  abrir("m-reportes");
+  consultarReportes();
+}
+function renderReportes(){
+  var h="", i, r;
+  if(!reportesCache.length){
+    h="<div class='rep-vacio'>No hay reportes pendientes. 👌</div>";
+  }
+  for(i=0;i<reportesCache.length;i++){ r=reportesCache[i];
+    var urgClase = r.urgencia.indexOf("Frena")===0?"urg-frena":(r.urgencia.indexOf("Molesta")===0?"urg-molesta":"urg-espera");
+    h+="<div class='rep-card'>";
+    h+="<div class='tarea-top'><span class='tarea-sector'>"+r.sector+"</span>";
+    h+="<span class='age "+(r.dias>=2?"pronto":"ok")+"'>hace "+r.dias+" d</span></div>";
+    h+="<div class='rep-quien'>👷 "+r.supervisor+" · <span class='"+urgClase+"'>"+r.urgencia+"</span></div>";
+    h+="<div class='tarea-desc'>"+r.desc+"</div>";
+    h+=fotoTarjeta(r);
+    h+="<div class='fila-cierre'>";
+    h+="<button class='btn-hecha' onclick='abrirNuevaDesdeReporte(\""+r.id+"\")'>➕ Crear OT</button>";
+    h+="<button class='btn-repuesto' onclick='mostrarDesc(\""+r.id+"\")'>🗑 Descartar</button>";
+    h+="</div>";
+    h+="<div class='rep-inline' id='desc-"+r.id+"'><input type='text' id='descin-"+r.id+"' placeholder='&iquest;Por qu&eacute;? Ej: duplicado, ya resuelto&hellip;'>";
+    h+="<button onclick='confirmarDescarte(\""+r.id+"\")'>Confirmar descarte</button></div>";
+    h+="</div>";
+  }
+  $("lista-reportes").innerHTML=h;
+}
+function mostrarDesc(id){ var el=$("desc-"+id); el.style.display = el.style.display==="block"?"none":"block"; }
+function confirmarDescarte(id){
+  if(frenar()) return;
+  if(!navigator.onLine){ toast("Sin se\u00f1al \u2014 prob\u00e1 de nuevo con conexi\u00f3n","err"); return; }
+  var motivo=($("descin-"+id)&&$("descin-"+id).value?$("descin-"+id).value.trim():"");
+  postTarea({ tipo:"gestionReporte", accion:"descartar", id:id, motivo:motivo, pin:SES.pin }, function(resp){
+    if(String(resp).indexOf("ERR")===0){ toast("No se pudo ("+resp+")","err"); return; }
+    toast("\u2713 Reporte descartado","ok");
+    consultarReportes();
   });
 }
 

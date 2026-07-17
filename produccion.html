@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0F1B27">
-<title>PMOS · Producción</title>
+<title>REPORTAR FALLA</title>
 <style>
 /* =====================================================================
    PMOS Producción — mismo lenguaje visual que el panel técnico.
@@ -94,8 +94,7 @@ select:focus,textarea:focus{outline:none;border-color:#FFB020}
 
 <!-- ============ LOGIN ============ -->
 <div class="pantalla visible" id="scr-login">
-  <h1>PMOS · Producci&oacute;n</h1>
-  <div class="sub">&iquest;Qui&eacute;n sos?</div>
+  <h1>REPORTAR FALLA</h1>
   <div class="nom-grid" id="zona-nombres"></div>
 </div>
 
@@ -135,7 +134,10 @@ select:focus,textarea:focus{outline:none;border-color:#FFB020}
 
     <div class="campo">
       <label>&iquest;D&oacute;nde? <span class="obl">*</span></label>
-      <select id="r-sector"></select>
+      <select id="r-sector" onchange="cambioSector()"></select>
+      <div id="r-otro-zona" style="display:none;margin-top:8px">
+        <input type="text" id="r-otro" placeholder="&iquest;D&oacute;nde? Ej: pasillo de entrada, vestuario&hellip;">
+      </div>
     </div>
 
     <div class="campo">
@@ -180,9 +182,9 @@ var CONFIG = {
   /* URL del Web App de Google Apps Script — LA MISMA del panel técnico */
   SHEET_URL: "https://script.google.com/macros/s/AKfycbxfsE3m6JfCYspGSSI9SK8T1CgjoGzubzzvPSM3DB-v7Huf9haZUq5TG0VagDYRANIB/exec",
 
-  /* Supervisores habilitados. Piloto: Chaco.
+  /* Usuarios habilitados para reportar.
      Para sumar gente: agregá el nombre acá y nada más. */
-  supervisores: ["Chaco"],
+  supervisores: ["Chaco","Nico"],
 
   /* Sectores — misma lista del panel técnico */
   grupos: [
@@ -257,7 +259,7 @@ function llenarSectores(sel){
 }
 function recSectores(){ try{ return JSON.parse(localStorage.getItem("pmosprod_sec_"+(SES.nombre||""))||"[]"); }catch(e){ return []; } }
 function recordarSector(sec){
-  if(!sec||sec==="Otros"||!SES.nombre) return;
+  if(!sec||sec.indexOf("Otros")===0||!SES.nombre) return;
   var r=recSectores().filter(function(x){return x!==sec;});
   r.unshift(sec);
   try{ localStorage.setItem("pmosprod_sec_"+SES.nombre, JSON.stringify(r.slice(0,3))); }catch(e){}
@@ -301,6 +303,13 @@ function pintarSinFoto(){
   $("r-sinfoto").textContent = sinFoto ? "✓ Va sin foto (tocá para cambiar)" : "No se puede sacar foto";
 }
 
+/* si eligen "Otros", aparece el campo para escribir dónde */
+function cambioSector(){
+  var esOtro = $("r-sector").value==="Otros";
+  $("r-otro-zona").style.display = esOtro ? "block" : "none";
+  if(esOtro) $("r-otro").focus();
+}
+
 /* ---------------- nuevo reporte ---------------- */
 var urgSel=null;
 function selUrg(v){
@@ -312,6 +321,7 @@ function selUrg(v){
 function abrirReporte(){
   llenarSectores($("r-sector"));
   $("r-desc").value=""; $("r-error").textContent="";
+  $("r-otro").value=""; $("r-otro-zona").style.display="none";
   urgSel=null; selUrg("");
   quitarFoto(); sinFoto=false; pintarSinFoto();
   abrir("m-rep");
@@ -321,6 +331,11 @@ function enviarReporte(){
   var sec=$("r-sector").value, desc=($("r-desc").value||"").trim();
   if(!fotoB64 && !sinFoto){ $("r-error").textContent="Sacale una foto (o marc\u00e1 que no se puede)."; return; }
   if(!sec){ $("r-error").textContent="Eleg\u00ed d\u00f3nde es."; return; }
+  if(sec==="Otros"){
+    var donde=($("r-otro").value||"").trim();
+    if(!donde){ $("r-error").textContent="Escrib\u00ed d\u00f3nde es."; return; }
+    sec="Otros: "+donde;
+  }
   if(!desc){ $("r-error").textContent="Cont\u00e1 qu\u00e9 pasa."; return; }
   if(!urgSel){ $("r-error").textContent="Marc\u00e1 cu\u00e1nto molesta."; return; }
   var reg={ uid:uid(), tipo:"reporteProduccion", supervisor:SES.nombre,

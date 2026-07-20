@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PMOS · Estadísticas</title>
+<style>
+  :root{
+    --bg:#0B1421; --panel:#121E30; --panel2:#0F1928; --borde:#1E2E45;
+    --txt:#DCE7F5; --txt2:#7B8DA6; --txt3:#4E617C;
+    --cian:#46D5E8; --ambar:#F5B14C; --verde:#40D98E; --rojo:#F26D6D;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:15px;min-height:100%;}
+  .mono{font-family:"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    font-variant-numeric:tabular-nums;}
+
+  /* ---------- login ---------- */
+  #pantallaPin{position:fixed;inset:0;background:var(--bg);z-index:50;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  #pantallaPin h1{font-size:15px;letter-spacing:3px;color:var(--txt2);font-weight:600;margin-bottom:6px;}
+  #pantallaPin .sub{font-size:12px;color:var(--txt3);margin-bottom:28px;}
+  #inputPin{width:180px;padding:14px;text-align:center;font-size:26px;letter-spacing:10px;
+    background:var(--panel);border:1px solid var(--borde);border-radius:12px;color:var(--cian);outline:none;}
+  #inputPin:focus{border-color:var(--cian);}
+  #btnPin{margin-top:16px;width:180px;padding:13px;border:none;border-radius:12px;
+    background:var(--cian);color:#06222a;font-size:15px;font-weight:700;}
+  #errPin{margin-top:14px;font-size:13px;color:var(--rojo);min-height:18px;}
+
+  /* ---------- layout ---------- */
+  #app{display:none;max-width:560px;margin:0 auto;padding:14px 14px 60px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;
+    padding:4px 2px 12px;}
+  header .titulo{font-size:14px;font-weight:700;letter-spacing:2.5px;color:var(--txt);}
+  header .titulo span{color:var(--cian);}
+  #btnRefrescar{background:var(--panel);border:1px solid var(--borde);color:var(--txt2);
+    border-radius:10px;padding:7px 12px;font-size:12px;}
+  #ultAct{font-size:11px;color:var(--txt3);text-align:right;padding:0 2px 10px;}
+
+  /* chips de técnico */
+  #chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 14px;-webkit-overflow-scrolling:touch;}
+  .chip{flex:0 0 auto;padding:9px 15px;border-radius:999px;font-size:13px;font-weight:600;
+    background:var(--panel);border:1px solid var(--borde);color:var(--txt2);white-space:nowrap;}
+  .chip.act{background:var(--cian);border-color:var(--cian);color:#06222a;}
+
+  /* tarjetas / secciones */
+  .card{background:var(--panel);border:1px solid var(--borde);border-radius:14px;
+    padding:14px;margin-bottom:12px;}
+  .card .etq{font-size:11px;letter-spacing:2px;color:var(--txt3);font-weight:700;margin-bottom:12px;}
+
+  /* KPIs estilo display de controlador */
+  .kpiGrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+  .kpi{background:var(--panel2);border:1px solid var(--borde);border-radius:10px;
+    padding:10px 6px 8px;text-align:center;}
+  .kpi .v{font-size:26px;font-weight:700;color:var(--cian);
+    text-shadow:0 0 14px rgba(70,213,232,.35);line-height:1.1;}
+  .kpi.amb .v{color:var(--ambar);text-shadow:0 0 14px rgba(245,177,76,.3);}
+  .kpi .l{font-size:10px;letter-spacing:1.5px;color:var(--txt3);font-weight:700;margin-top:4px;}
+  .kpiGrid.tres{grid-template-columns:1fr 1fr 1fr;}
+  .kpi .v.chico{font-size:19px;padding-top:4px;}
+
+  /* barras verticales (14 días) */
+  .chart{display:flex;align-items:flex-end;gap:3px;height:110px;padding-top:16px;}
+  .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .col .num{font-size:9px;color:var(--txt2);margin-bottom:3px;}
+  .col .bar{width:100%;max-width:22px;border-radius:3px 3px 0 0;background:#1B3A4E;min-height:2px;}
+  .col .bar.on{background:var(--cian);}
+  .col .bar.amb{background:#3d3115;}
+  .col .bar.amb.on{background:var(--ambar);}
+  .col .dia{font-size:9px;color:var(--txt3);margin-top:5px;}
+  .col.hoy .dia{color:var(--cian);font-weight:700;}
+
+  /* barras horizontales (comparativa / top equipos) */
+  .hrow{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+  .hrow .nom{flex:0 0 86px;font-size:12.5px;color:var(--txt);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .hrow .pista{flex:1;height:16px;background:var(--panel2);border-radius:5px;overflow:hidden;}
+  .hrow .relleno{height:100%;border-radius:5px;background:var(--cian);min-width:2px;}
+  .hrow .relleno.amb{background:var(--ambar);}
+  .hrow .relleno.lider{background:var(--verde);}
+  .hrow .val{flex:0 0 74px;text-align:right;font-size:12px;color:var(--txt2);}
+  .hrow .val b{color:var(--txt);font-weight:700;}
+
+  .filaDato{display:flex;justify-content:space-between;padding:7px 0;
+    border-bottom:1px solid var(--borde);font-size:13px;}
+  .filaDato:last-child{border-bottom:none;}
+  .filaDato .k{color:var(--txt2);}
+  .filaDato .d{color:var(--txt);font-weight:600;}
+  .filaDato .d.rojo{color:var(--rojo);}
+
+  #cargando{text-align:center;color:var(--txt3);padding:40px 0;font-size:13px;display:none;}
+  #errCarga{display:none;text-align:center;color:var(--rojo);padding:20px;font-size:13px;}
+  .vacio{color:var(--txt3);font-size:13px;text-align:center;padding:12px 0;}
+</style>
+</head>
+<body>
+
+<!-- ===== PIN ===== -->
+<div id="pantallaPin">
+  <h1>PMOS · ESTADÍSTICAS</h1>
+  <div class="sub">Panel de gestión — Pesce Frutos del Mar</div>
+  <input id="inputPin" type="tel" inputmode="numeric" maxlength="6" placeholder="PIN" autocomplete="off">
+  <button id="btnPin" onclick="verificarPin()">Entrar</button>
+  <div id="errPin"></div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+  <header>
+    <div class="titulo">PMOS <span>· ESTADÍSTICAS</span></div>
+    <button id="btnRefrescar" onclick="cargarDatos()">Actualizar</button>
+  </header>
+  <div id="ultAct"></div>
+  <div id="chips"></div>
+  <div id="cargando">Cargando datos…</div>
+  <div id="errCarga"></div>
+  <div id="contenido"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ================== CONFIG ================== */
+var CONFIG = {
+  SHEET_URL: "https://script.google.com/macros/s/AKfycbxfsE3m6JfCYspGSSI9SK8T1CgjoGzubzzvPSM3DB-v7Huf9haZUq5TG0VagDYRANIB/exec",
+  PIN: "1984",
+  DIAS_DATA: 60,          // cuántos días trae del backend
+  DIAS_CHART: 14,         // días del gráfico de barras
+  CORTE_JORNADA: 6,       // trabajos con inicio antes de las 06:00 cuentan para el día anterior
+  TECNICOS: ["Lucas","Jorge","Daniel","Franco","Fernando","Francisco","Enrique"]
+};
+
+/* ================== ESTADO ================== */
+var trabajos = [];   // {jor:Date, tecnico, equipo, dur:Number}
+var fallas = [];     // {jor:Date, tecnico}
+var tecActivo = "__EQUIPO__";
+var listaTecs = [];
+
+/* ================== PIN ================== */
+function verificarPin(){
+  var v = document.getElementById("inputPin").value;
+  if (v === CONFIG.PIN){
+    try{ localStorage.setItem("stats_pin_ok","1"); }catch(e){}
+    entrar();
+  } else {
+    document.getElementById("errPin").textContent = "PIN incorrecto";
+    document.getElementById("inputPin").value = "";
+  }
+}
+function entrar(){
+  document.getElementById("pantallaPin").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  cargarDatos();
+}
+document.getElementById("inputPin").addEventListener("keyup", function(ev){
+  if (ev.keyCode === 13) verificarPin();
+});
+
+/* ================== UTILIDADES ================== */
+function dkey(d){
+  var m = d.getMonth()+1, dd = d.getDate();
+  return d.getFullYear() + "-" + (m<10?"0":"")+m + "-" + (dd<10?"0":"")+dd;
+}
+function hoyCero(){ var d = new Date(); d.setHours(0,0,0,0); return d; }
+function restarDias(d, n){ var x = new Date(d.getTime()); x.setDate(x.getDate()-n); return x; }
+function parseFecha(s){
+  if (!s) return null;
+  s = String(s).trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  var d = new Date(s);
+  if (!isNaN(d.getTime())){ d.setHours(0,0,0,0); return d; }
+  return null;
+}
+function horaDe(s){
+  if (!s) return null;
+  var m = String(s).match(/(\d{1,2}):(\d{2})/);
+  return m ? +m[1] : null;
+}
+function fmtHoras(min){
+  min = Math.round(min);
+  if (min <= 0) return "0m";
+  var h = Math.floor(min/60), m = min % 60;
+  if (h === 0) return m + "m";
+  if (m === 0) return h + "h";
+  return h + "h " + (m<10?"0":"") + m + "m";
+}
+function esc(s){
+  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function idx(headers, nombres){
+  for (var i = 0; i < nombres.length; i++){
+    var p = headers.indexOf(nombres[i]);
+    if (p >= 0) return p;
+  }
+  return -1;
+}
+
+/* ================== CARGA DE DATOS ================== */
+function cargarDatos(){
+  var cg = document.getElementById("cargando");
+  var er = document.getElementById("errCarga");
+  cg.style.display = "block"; er.style.display = "none";
+  document.getElementById("contenido").innerHTML = "";
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", CONFIG.SHEET_URL + "?action=getStats&dias=" + CONFIG.DIAS_DATA, true);
+  xhr.timeout = 30000;
+  xhr.onload = function(){
+    cg.style.display = "none";
+    try{
+      var data = JSON.parse(xhr.responseText);
+      procesar(data);
+      var ahora = new Date();
+      document.getElementById("ultAct").textContent =
+        "Actualizado " + (ahora.getHours()<10?"0":"") + ahora.getHours() + ":" +
+        (ahora.getMinutes()<10?"0":"") + ahora.getMinutes();
+      armarChips();
+      render();
+    }catch(e){
+      er.style.display = "block";
+      er.textContent = "No pude leer la respuesta del servidor. ¿Está agregado getStats al Apps Script y re-implementado?";
+    }
+  };
+  xhr.onerror = xhr.ontimeout = function(){
+    cg.style.display = "none";
+    er.style.display = "block";
+    er.textContent = "Sin conexión con el servidor. Probá de nuevo.";
+  };
+  xhr.send();
+}
+
+function procesar(data){
+  trabajos = []; fallas = [];
+
+  // ---- trabajos ----
+  var t = data.trabajos || {headers:[],rows:[]};
+  var h = t.headers;
+  var iF = idx(h, ["fecha"]);
+  var iJ = idx(h, ["jornada"]);
+  var iT = idx(h, ["tecnico","técnico"]);
+  var iE = idx(h, ["equipo","sector"]);
+  var iD = idx(h, ["duracion_min","duracion","duración_min"]);
+  var iI = idx(h, ["inicio","hora_inicio"]);
+
+  for (var i = 0; i < t.rows.length; i++){
+    var r = t.rows[i];
+    var tec = iT >= 0 ? String(r[iT]).trim() : "";
+    if (!tec) continue;
+
+    var jor = null;
+    if (iJ >= 0) jor = parseFecha(r[iJ]);
+    if (!jor && iF >= 0){
+      jor = parseFecha(r[iF]);
+      if (jor && iI >= 0){
+        var hi = horaDe(r[iI]);
+        if (hi !== null && hi < CONFIG.CORTE_JORNADA) jor = restarDias(jor, 1);
+      }
+    }
+    if (!jor) continue;
+
+    var dur = 0;
+    if (iD >= 0){ dur = parseFloat(r[iD]); if (isNaN(dur) || dur < 0) dur = 0; }
+
+    trabajos.push({
+      jor: jor,
+      tecnico: tec,
+      equipo: iE >= 0 ? String(r[iE]).trim() : "",
+      dur: dur
+    });
+  }
+
+  // ---- fallas ----
+  var f = data.fallas || {headers:[],rows:[]};
+  var fh = f.headers;
+  var fiF = idx(fh, ["fecha"]);
+  var fiT = idx(fh, ["tecnico","técnico"]);
+  for (var k = 0; k < f.rows.length; k++){
+    var fr = f.rows[k];
+    var ftec = fiT >= 0 ? String(fr[fiT]).trim() : "";
+    var fjor = fiF >= 0 ? parseFecha(fr[fiF]) : null;
+    if (!ftec || !fjor) continue;
+    fallas.push({ jor: fjor, tecnico: ftec });
+  }
+
+  // ---- lista de técnicos: config + los que aparezcan en la data ----
+  var vistos = {};
+  listaTecs = [];
+  for (var c = 0; c < CONFIG.TECNICOS.length; c++){
+    listaTecs.push(CONFIG.TECNICOS[c]); vistos[CONFIG.TECNICOS[c]] = 1;
+  }
+  for (var z = 0; z < trabajos.length; z++){
+    if (!vistos[trabajos[z].tecnico]){ vistos[trabajos[z].tecnico] = 1; listaTecs.push(trabajos[z].tecnico); }
+  }
+}
+
+/* ================== CÁLCULOS ================== */
+function statsDe(tec){
+  var hoy = hoyCero();
+  var kHoy = dkey(hoy), kAyer = dkey(restarDias(hoy,1));
+  var d7 = restarDias(hoy, 6);
+  var mesM = hoy.getMonth(), mesA = hoy.getFullYear();
+
+  var s = {
+    nHoy:0, nAyer:0, n7:0, nMes:0,
+    mHoy:0, m7:0, mMes:0,
+    conDurMes:0, porDia:{}, minDia:{}, equipos:{},
+    f7:0, fMes:0
+  };
+
+  for (var i = 0; i < trabajos.length; i++){
+    var w = trabajos[i];
+    if (tec && w.tecnico !== tec) continue;
+    var k = dkey(w.jor);
+
+    if (k === kHoy){ s.nHoy++; s.mHoy += w.dur; }
+    if (k === kAyer) s.nAyer++;
+    if (w.jor >= d7){ s.n7++; s.m7 += w.dur; }
+    if (w.jor.getMonth() === mesM && w.jor.getFullYear() === mesA){
+      s.nMes++; s.mMes += w.dur;
+      if (w.dur > 0) s.conDurMes++;
+      if (w.equipo){
+        if (!s.equipos[w.equipo]) s.equipos[w.equipo] = 0;
+        s.equipos[w.equipo]++;
+      }
+    }
+    s.porDia[k] = (s.porDia[k]||0) + 1;
+    s.minDia[k] = (s.minDia[k]||0) + w.dur;
+  }
+
+  for (var j = 0; j < fallas.length; j++){
+    var fl = fallas[j];
+    if (tec && fl.tecnico !== tec) continue;
+    if (fl.jor >= d7) s.f7++;
+    if (fl.jor.getMonth() === mesM && fl.jor.getFullYear() === mesA) s.fMes++;
+  }
+  return s;
+}
+
+/* ================== UI ================== */
+function armarChips(){
+  var html = '<div class="chip' + (tecActivo==="__EQUIPO__" ? ' act':'') +
+             '" onclick="elegir(\'__EQUIPO__\')">Equipo</div>';
+  for (var i = 0; i < listaTecs.length; i++){
+    var t = listaTecs[i];
+    html += '<div class="chip' + (tecActivo===t ? ' act':'') +
+            '" onclick="elegir(\'' + esc(t).replace(/'/g,"\\'") + '\')">' + esc(t) + '</div>';
+  }
+  document.getElementById("chips").innerHTML = html;
+}
+function elegir(t){ tecActivo = t; armarChips(); render(); }
+
+function render(){
+  var cont = document.getElementById("contenido");
+  cont.innerHTML = tecActivo === "__EQUIPO__" ? renderEquipo() : renderTecnico(tecActivo);
+}
+
+/* ---------- vista técnico ---------- */
+function renderTecnico(tec){
+  var s = statsDe(tec);
+  var html = "";
+
+  // KPIs trabajos
+  html += '<div class="card"><div class="etq">TRABAJOS · ' + esc(tec).toUpperCase() + '</div>' +
+    '<div class="kpiGrid">' +
+      kpi(s.nHoy, "HOY") + kpi(s.nAyer, "AYER") + kpi(s.n7, "7 DÍAS") + kpi(s.nMes, "MES") +
+    '</div></div>';
+
+  // KPIs horas
+  var prom = s.conDurMes > 0 ? Math.round(s.mMes / s.conDurMes) : 0;
+  html += '<div class="card"><div class="etq">HORAS CONSUMIDAS</div>' +
+    '<div class="kpiGrid tres">' +
+      kpiAmb(fmtHoras(s.mHoy), "HOY") +
+      kpiAmb(fmtHoras(s.m7), "7 DÍAS") +
+      kpiAmb(fmtHoras(s.mMes), "MES") +
+    '</div>' +
+    '<div style="height:10px"></div>' +
+    '<div class="filaDato"><span class="k">Promedio por trabajo (mes)</span><span class="d">' +
+      (prom > 0 ? fmtHoras(prom) : "—") + '</span></div>' +
+    '<div class="filaDato"><span class="k">Trabajos sin duración cargada (mes)</span><span class="d' +
+      ((s.nMes - s.conDurMes) > 0 ? ' rojo' : '') + '">' + (s.nMes - s.conDurMes) + '</span></div>' +
+    '</div>';
+
+  // Charts 14 días
+  html += chartCard("TRABAJOS POR DÍA · ÚLT. " + CONFIG.DIAS_CHART, s.porDia, false);
+  html += chartCard("HORAS POR DÍA · ÚLT. " + CONFIG.DIAS_CHART, s.minDia, true);
+
+  // Top equipos/sectores del mes
+  html += '<div class="card"><div class="etq">DÓNDE TRABAJÓ (MES)</div>';
+  var pares = [];
+  for (var e in s.equipos) if (s.equipos.hasOwnProperty(e)) pares.push([e, s.equipos[e]]);
+  pares.sort(function(a,b){ return b[1]-a[1]; });
+  if (pares.length === 0){
+    html += '<div class="vacio">Sin registros este mes</div>';
+  } else {
+    var maxE = pares[0][1];
+    for (var p = 0; p < Math.min(6, pares.length); p++){
+      html += hbar(pares[p][0], pares[p][1], maxE, pares[p][1] + " trab.", "", false);
+    }
+  }
+  html += '</div>';
+
+  // Fallas
+  html += '<div class="card"><div class="etq">FALLAS REPORTADAS</div>' +
+    '<div class="filaDato"><span class="k">Últimos 7 días</span><span class="d">' + s.f7 + '</span></div>' +
+    '<div class="filaDato"><span class="k">Este mes</span><span class="d">' + s.fMes + '</span></div>' +
+    '</div>';
+
+  return html;
+}
+
+function kpi(v, l){ return '<div class="kpi"><div class="v mono">' + v + '</div><div class="l">' + l + '</div></div>'; }
+function kpiAmb(v, l){
+  return '<div class="kpi amb"><div class="v chico mono">' + v + '</div><div class="l">' + l + '</div></div>';
+}
+
+function chartCard(titulo, mapa, esHoras){
+  var hoy = hoyCero();
+  var max = 0, dias = [];
+  for (var i = CONFIG.DIAS_CHART - 1; i >= 0; i--){
+    var d = restarDias(hoy, i);
+    var v = mapa[dkey(d)] || 0;
+    if (v > max) max = v;
+    dias.push({ d: d, v: v, esHoy: i === 0 });
+  }
+  var html = '<div class="card"><div class="etq">' + titulo + '</div><div class="chart">';
+  for (var j = 0; j < dias.length; j++){
+    var pct = max > 0 ? Math.round(dias[j].v / max * 100) : 0;
+    var lbl = dias[j].v > 0 ? (esHoras ? fmtHoras(dias[j].v) : dias[j].v) : "";
+    if (esHoras && lbl && dias[j].v >= 60) lbl = Math.round(dias[j].v/60*10)/10 + "h";
+    html += '<div class="col' + (dias[j].esHoy ? ' hoy':'') + '">' +
+      '<div class="num mono">' + lbl + '</div>' +
+      '<div class="bar' + (esHoras ? ' amb':'') + (dias[j].v > 0 ? ' on':'') +
+        '" style="height:' + Math.max(pct, dias[j].v > 0 ? 6 : 2) + '%"></div>' +
+      '<div class="dia">' + dias[j].d.getDate() + '</div></div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function hbar(nombre, valor, max, txtVal, extra, lider){
+  var pct = max > 0 ? Math.max(Math.round(valor / max * 100), valor > 0 ? 3 : 0) : 0;
+  return '<div class="hrow">' +
+    '<div class="nom">' + esc(nombre) + '</div>' +
+    '<div class="pista"><div class="relleno' + (lider ? ' lider':'') + (extra === "amb" ? ' amb':'') +
+      '" style="width:' + pct + '%"></div></div>' +
+    '<div class="val mono"><b>' + txtVal + '</b></div></div>';
+}
+
+/* ---------- vista equipo (comparativa) ---------- */
+function renderEquipo(){
+  var stats = [], i;
+  for (i = 0; i < listaTecs.length; i++){
+    var s = statsDe(listaTecs[i]);
+    stats.push({ tec: listaTecs[i], s: s });
+  }
+  var tot = statsDe(null);
+
+  var html = '<div class="card"><div class="etq">TOTAL DEL EQUIPO</div>' +
+    '<div class="kpiGrid">' +
+      kpi(tot.nHoy,"HOY") + kpi(tot.nAyer,"AYER") + kpi(tot.n7,"7 DÍAS") + kpi(tot.nMes,"MES") +
+    '</div><div style="height:10px"></div>' +
+    '<div class="kpiGrid tres">' +
+      kpiAmb(fmtHoras(tot.mHoy),"HS HOY") + kpiAmb(fmtHoras(tot.m7),"HS 7D") + kpiAmb(fmtHoras(tot.mMes),"HS MES") +
+    '</div></div>';
+
+  // Quién carga más — trabajos últimos 7 días
+  var porTrab = stats.slice().sort(function(a,b){ return b.s.n7 - a.s.n7; });
+  var maxT = porTrab.length ? porTrab[0].s.n7 : 0;
+  html += '<div class="card"><div class="etq">QUIÉN CARGA MÁS · TRABAJOS 7 DÍAS</div>';
+  if (maxT === 0){
+    html += '<div class="vacio">Sin trabajos en los últimos 7 días</div>';
+  } else {
+    for (i = 0; i < porTrab.length; i++){
+      html += hbar(porTrab[i].tec, porTrab[i].s.n7, maxT,
+        porTrab[i].s.n7 + " · mes " + porTrab[i].s.nMes, "", i === 0 && porTrab[i].s.n7 > 0);
+    }
+  }
+  html += '</div>';
+
+  // Horas últimos 7 días
+  var porHs = stats.slice().sort(function(a,b){ return b.s.m7 - a.s.m7; });
+  var maxH = porHs.length ? porHs[0].s.m7 : 0;
+  html += '<div class="card"><div class="etq">HORAS CONSUMIDAS · 7 DÍAS</div>';
+  if (maxH === 0){
+    html += '<div class="vacio">Sin horas cargadas en los últimos 7 días</div>';
+  } else {
+    for (i = 0; i < porHs.length; i++){
+      html += hbar(porHs[i].tec, porHs[i].s.m7, maxH, fmtHoras(porHs[i].s.m7), "amb", false);
+    }
+  }
+  html += '</div>';
+
+  // Hoy, rapidito
+  html += '<div class="card"><div class="etq">HOY POR TÉCNICO</div>';
+  var algoHoy = false;
+  for (i = 0; i < stats.length; i++){
+    if (stats[i].s.nHoy > 0){
+      algoHoy = true;
+      html += '<div class="filaDato"><span class="k">' + esc(stats[i].tec) + '</span>' +
+        '<span class="d">' + stats[i].s.nHoy + ' trab. · ' + fmtHoras(stats[i].s.mHoy) + '</span></div>';
+    }
+  }
+  if (!algoHoy) html += '<div class="vacio">Todavía nadie cargó trabajos hoy</div>';
+  html += '</div>';
+
+  html += '<div style="text-align:center;color:var(--txt3);font-size:11px;padding:6px;">' +
+    'Tocá un técnico arriba para ver su detalle · Jornada con corte 06:00</div>';
+  return html;
+}
+
+/* ================== INICIO ================== */
+(function(){
+  var ok = false;
+  try{ ok = localStorage.getItem("stats_pin_ok") === "1"; }catch(e){}
+  if (ok) entrar();
+})();
+</script>
+</body>
+</html>

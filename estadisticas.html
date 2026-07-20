@@ -125,7 +125,7 @@
 /* ================== CONFIG ================== */
 var CONFIG = {
   SHEET_URL: "https://script.google.com/macros/s/AKfycbxfsE3m6JfCYspGSSI9SK8T1CgjoGzubzzvPSM3DB-v7Huf9haZUq5TG0VagDYRANIB/exec",
-  PIN: "1984",
+  // El PIN NO va acá (el HTML es público en GitHub): se valida en el Apps Script.
   DIAS_DATA: 60,          // cuántos días trae del backend
   DIAS_CHART: 14,         // días del gráfico de barras
   CORTE_JORNADA: 6,       // trabajos con inicio antes de las 06:00 cuentan para el día anterior
@@ -137,22 +137,33 @@ var trabajos = [];   // {jor:Date, tecnico, equipo, dur:Number}
 var fallas = [];     // {jor:Date, tecnico}
 var tecActivo = "__EQUIPO__";
 var listaTecs = [];
+var pinGuardado = "";
 
 /* ================== PIN ================== */
 function verificarPin(){
   var v = document.getElementById("inputPin").value;
-  if (v === CONFIG.PIN){
-    try{ localStorage.setItem("stats_pin_ok","1"); }catch(e){}
+  if (!v){ document.getElementById("errPin").textContent = "Ingresá el PIN"; return; }
+  pinGuardado = v;
+  document.getElementById("errPin").textContent = "Verificando…";
+  pedirDatos(function(){
+    try{ localStorage.setItem("stats_pin", pinGuardado); }catch(e){}
     entrar();
-  } else {
-    document.getElementById("errPin").textContent = "PIN incorrecto";
-    document.getElementById("inputPin").value = "";
-  }
+  }, function(msg){
+    document.getElementById("errPin").textContent = msg;
+    if (msg === "PIN incorrecto") document.getElementById("inputPin").value = "";
+  });
 }
 function entrar(){
   document.getElementById("pantallaPin").style.display = "none";
   document.getElementById("app").style.display = "block";
-  cargarDatos();
+  refrescarVista();
+}
+function salirALogin(){
+  try{ localStorage.removeItem("stats_pin"); }catch(e){}
+  pinGuardado = "";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("pantallaPin").style.display = "flex";
+  document.getElementById("errPin").textContent = "El PIN ya no es válido, ingresalo de nuevo";
 }
 document.getElementById("inputPin").addEventListener("keyup", function(ev){
   if (ev.keyCode === 13) verificarPin();
@@ -201,35 +212,53 @@ function idx(headers, nombres){
 }
 
 /* ================== CARGA DE DATOS ================== */
-function cargarDatos(){
+function cargarDatos(){ // botón Actualizar
+  pedirDatos(refrescarVista, function(msg){
+    if (msg === "PIN incorrecto") salirALogin(); // cambiaron el PIN en el server
+  });
+}
+
+function refrescarVista(){
+  var ahora = new Date();
+  document.getElementById("ultAct").textContent =
+    "Actualizado " + (ahora.getHours()<10?"0":"") + ahora.getHours() + ":" +
+    (ahora.getMinutes()<10?"0":"") + ahora.getMinutes();
+  armarChips();
+  render();
+}
+
+function pedirDatos(ok, fail){
   var cg = document.getElementById("cargando");
   var er = document.getElementById("errCarga");
   cg.style.display = "block"; er.style.display = "none";
   document.getElementById("contenido").innerHTML = "";
 
   var xhr = new XMLHttpRequest();
-  xhr.open("GET", CONFIG.SHEET_URL + "?action=getStats&dias=" + CONFIG.DIAS_DATA, true);
+  xhr.open("GET", CONFIG.SHEET_URL + "?action=getStats&pin=" +
+    encodeURIComponent(pinGuardado) + "&dias=" + CONFIG.DIAS_DATA, true);
   xhr.timeout = 30000;
   xhr.onload = function(){
     cg.style.display = "none";
-    try{
-      var data = JSON.parse(xhr.responseText);
-      procesar(data);
-      var ahora = new Date();
-      document.getElementById("ultAct").textContent =
-        "Actualizado " + (ahora.getHours()<10?"0":"") + ahora.getHours() + ":" +
-        (ahora.getMinutes()<10?"0":"") + ahora.getMinutes();
-      armarChips();
-      render();
-    }catch(e){
+    var data = null;
+    try{ data = JSON.parse(xhr.responseText); }catch(e){}
+    if (!data){
       er.style.display = "block";
       er.textContent = "No pude leer la respuesta del servidor. ¿Está agregado getStats al Apps Script y re-implementado?";
+      if (fail) fail("El servidor no respondió como esperaba");
+      return;
     }
+    if (data.error === "PIN"){
+      if (fail) fail("PIN incorrecto");
+      return;
+    }
+    procesar(data);
+    if (ok) ok();
   };
   xhr.onerror = xhr.ontimeout = function(){
     cg.style.display = "none";
     er.style.display = "block";
     er.textContent = "Sin conexión con el servidor. Probá de nuevo.";
+    if (fail) fail("Sin conexión. Probá de nuevo.");
   };
   xhr.send();
 }
@@ -515,9 +544,16 @@ function renderEquipo(){
 
 /* ================== INICIO ================== */
 (function(){
-  var ok = false;
-  try{ ok = localStorage.getItem("stats_pin_ok") === "1"; }catch(e){}
-  if (ok) entrar();
+  var p = "";
+  try{ p = localStorage.getItem("stats_pin") || ""; }catch(e){}
+  if (p){
+    pinGuardado = p;
+    document.getElementById("errPin").textContent = "Entrando…";
+    pedirDatos(entrar, function(msg){
+      document.getElementById("errPin").textContent =
+        (msg === "PIN incorrecto") ? "El PIN cambió, ingresalo de nuevo" : msg;
+    });
+  }
 })();
 </script>
 </body>

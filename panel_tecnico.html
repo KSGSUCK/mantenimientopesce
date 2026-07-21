@@ -425,7 +425,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <div class="campo"><label>Foto <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
       <div class="foto-row">
         <button class="btn-foto" onclick="document.getElementById('t-file').click();return false;">📷 Sacar foto</button>
+        <button class="btn-foto" onclick="document.getElementById('t-file-gal').click();return false;">🖼 Galería</button>
         <input type="file" id="t-file" accept="image/*" capture="environment" style="display:none" onchange="fotoElegida(this,'t')">
+        <input type="file" id="t-file-gal" accept="image/*" style="display:none" onchange="fotoElegida(this,'t')">
         <div class="foto-prev" id="t-prev"><img id="t-img"><button class="foto-x" onclick="quitarFoto('t');return false;">✕</button></div>
       </div></div>
     <div class="campo">
@@ -466,7 +468,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <div class="campo"><label>Foto <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
       <div class="foto-row">
         <button class="btn-foto" onclick="document.getElementById('f-file').click();return false;">📷 Sacar foto</button>
+        <button class="btn-foto" onclick="document.getElementById('f-file-gal').click();return false;">🖼 Galería</button>
         <input type="file" id="f-file" accept="image/*" capture="environment" style="display:none" onchange="fotoElegida(this,'f')">
+        <input type="file" id="f-file-gal" accept="image/*" style="display:none" onchange="fotoElegida(this,'f')">
         <div class="foto-prev" id="f-prev"><img id="f-img"><button class="foto-x" onclick="quitarFoto('f');return false;">✕</button></div>
       </div></div>
     <div class="campo">
@@ -508,7 +512,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <div class="campo"><label>Foto <span style="color:#56697C;text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></label>
       <div class="foto-row">
         <button class="btn-foto" onclick="document.getElementById('n-file').click();return false;">📷 Sacar foto</button>
+        <button class="btn-foto" onclick="document.getElementById('n-file-gal').click();return false;">🖼 Galería</button>
         <input type="file" id="n-file" accept="image/*" capture="environment" style="display:none" onchange="fotoNuevaElegida(this)">
+        <input type="file" id="n-file-gal" accept="image/*" style="display:none" onchange="fotoNuevaElegida(this)">
         <div class="foto-prev" id="n-prev"><img id="n-img"><button class="foto-x" onclick="quitarFotoNueva();return false;">✕</button></div>
       </div>
     </div>
@@ -694,7 +700,44 @@ function llenarSelect(sel, arr){
 /* ---------------- almacenamiento local + envío a Sheets ---------------- */
 var OUTBOX_KEY="pmos_f1_outbox", LOG_KEY="pmos_f1_log";
 function leer(k){ try{ return JSON.parse(window.localStorage.getItem(k)||"[]"); }catch(e){ return []; } }
-function escribir(k,a){ try{ window.localStorage.setItem(k, JSON.stringify(a)); }catch(e){} }
+function escribir(k,a){
+  try{ window.localStorage.setItem(k, JSON.stringify(a)); return true; }
+  catch(e){
+    // storage lleno: depurar y reintentar UNA vez
+    depurarStorage();
+    try{ window.localStorage.setItem(k, JSON.stringify(a)); return true; }
+    catch(e2){
+      try{ toast("\u26A0 Memoria del tel\u00e9fono llena \u2014 avisar a Fran","err"); }catch(e3){}
+      return false;
+    }
+  }
+}
+
+/* mantenimiento del storage: corre al abrir el panel y ante cuota llena.
+   - outbox: solo quedan los pendientes de env\u00edo (los enviados se van)
+   - log: sin fotos (la foto ya viaja al Drive) y solo \u00faltimos 2 d\u00edas */
+function ayerKey(){ var d=new Date(); d.setDate(d.getDate()-1);
+  return d.getFullYear()+"-"+dosDig(d.getMonth()+1)+"-"+dosDig(d.getDate()); }
+function sinFoto(rec){
+  if(rec && rec.datos && rec.datos.foto_b64){
+    rec=JSON.parse(JSON.stringify(rec)); rec.datos.foto_b64="";
+  }
+  return rec;
+}
+function depurarStorage(){
+  try{
+    var ob=leer(OUTBOX_KEY), pend=[], i;
+    for(i=0;i<ob.length;i++) if(!ob[i].enviado) pend.push(ob[i]);
+    window.localStorage.setItem(OUTBOX_KEY, JSON.stringify(pend));
+
+    var log=leer(LOG_KEY), hoy=hoyKey(), ayer=ayerKey(), dep=[];
+    for(i=0;i<log.length;i++){
+      if(log[i].dia!==hoy && log[i].dia!==ayer) continue;
+      dep.push(sinFoto(log[i]));
+    }
+    window.localStorage.setItem(LOG_KEY, JSON.stringify(dep));
+  }catch(e){}
+}
 
 /* freno anti doble-toque: ignora toques repetidos por 1.5 seg */
 var _frenado=false;
@@ -709,8 +752,19 @@ function registrar(tipo, datos){
   var rec = { tipo: tipo, fecha: new Date().toISOString(), dia: hoyKey(),
               tecnico: SES.nombre, datos: datos, enviado: false,
               uid: Date.now().toString(36)+Math.random().toString(36).slice(2,6) };
-  var ob = leer(OUTBOX_KEY); ob.push(rec); escribir(OUTBOX_KEY, ob);
-  var log = leer(LOG_KEY); log.push(rec); escribir(LOG_KEY, log);
+  var ob = leer(OUTBOX_KEY); ob.push(rec);
+  var ok = escribir(OUTBOX_KEY, ob);
+  if(!ok){
+    // ni con la depuraci\u00f3n entr\u00f3: NO mentirle al t\u00e9cnico.
+    // (con delay para pisar el toast verde que muestra el formulario)
+    setTimeout(function(){ toast("\u26A0 NO se guard\u00f3 \u2014 memoria llena. Avisar a Fran.","err"); }, 600);
+    return;
+  }
+  // el log guarda todo el d\u00eda pero SIN la foto (la foto viaja en la outbox)
+  var log = leer(LOG_KEY), hoy = hoyKey(), ayer = ayerKey(), dep = [], i;
+  for(i=0;i<log.length;i++) if(log[i].dia===hoy||log[i].dia===ayer) dep.push(log[i]);
+  dep.push(sinFoto(rec));
+  escribir(LOG_KEY, dep);
   enviarPendientes();
   refrescarHoy();
 }
@@ -730,13 +784,25 @@ function enviarUno(pend, idx){
   x.open("POST", CONFIG.SHEET_URL, true);
   x.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
   x.timeout = 30000;
-  x.onload = function(){ marcarEnviado(rec.uid); enviarUno(pend, idx+1); };
+  x.onload = function(){
+    var t = String(x.responseText || "");
+    if (t.indexOf("OK") === 0 || t.indexOf("TOMADA") === 0) {
+      marcarEnviado(rec.uid);
+    } else {
+      // el servidor respondi\u00f3 pero con error: queda pendiente y se reintenta
+      marcarBarra("sin-senal","El servidor rechaz\u00f3 una carga \u2014 queda guardada, se reintenta");
+    }
+    enviarUno(pend, idx+1);
+  };
   x.onerror = function(){ marcarBarra("sin-senal","No se pudo enviar — queda guardado"); };
   x.ontimeout = function(){ marcarBarra("sin-senal","Sin señal — queda guardado"); };
   x.send(JSON.stringify(rec));
 }
 function marcarEnviado(uid){
-  var ob=leer(OUTBOX_KEY), i; for(i=0;i<ob.length;i++) if(ob[i].uid===uid) ob[i].enviado=true; escribir(OUTBOX_KEY, ob);
+  // confirmado por el servidor: se borra de la outbox (la foto ya est\u00e1 en Drive)
+  var ob=leer(OUTBOX_KEY), out=[], i;
+  for(i=0;i<ob.length;i++) if(ob[i].uid!==uid) out.push(ob[i]);
+  escribir(OUTBOX_KEY, out);
 }
 function marcarBarra(clase, txt){ var b=$("barra-offline"); b.className="barra-offline "+clase; b.textContent=txt; b.style.display="block";
   if(clase==="enviando") setTimeout(ocultarBarra, 1500); }
@@ -799,7 +865,7 @@ function salir(){
 
 /* ---------------- TAREAS (OT del backlog) ---------------- */
 var tareaTimer=null;
-function iniciarPollingTareas(){ consultarTareas(); tareaTimer=setInterval(consultarTareas, 60000); }
+function iniciarPollingTareas(){ consultarTareas(); tareaTimer=setInterval(function(){ consultarTareas(); enviarPendientes(); }, 60000); }
 function detenerPollingTareas(){ if(tareaTimer){ clearInterval(tareaTimer); tareaTimer=null; } }
 
 function consultarTareas(){
@@ -1352,6 +1418,7 @@ function quitarFoto(pref){
   fotos[pref]=null;
   var p=$(pref+"-prev"); if(p) p.style.display="none";
   var i=$(pref+"-file"); if(i) i.value="";
+  var g=$(pref+"-file-gal"); if(g) g.value="";
 }
 function fotoParaEnvio(pref){
   if(!fotos[pref]) return "";
@@ -1811,6 +1878,7 @@ function guardarRonda(){
 }
 
 /* ---------------- init ---------------- */
+depurarStorage();   // limpia lo acumulado por versiones anteriores (fotos en outbox/log)
 pintarNombres();
 </script>
 </body>

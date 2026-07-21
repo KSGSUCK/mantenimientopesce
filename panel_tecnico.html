@@ -140,6 +140,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .pt-estado-txt{font-size:12px;font-weight:800;color:#F2B33D;letter-spacing:.5px;text-transform:uppercase;margin:4px 0}
 .no-medible input{opacity:.28;pointer-events:none}
 
+/* Equipos de frío (XWEB) */
+.eq-card{background:#16222F;border:1px solid #24364A;border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.eq-nombre{font-weight:700;font-size:15px;margin-bottom:6px}
+.eq-fila{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;color:#9DB2C6;
+  padding:6px 0;border-top:1px solid #1F3043}
+.eq-fila:first-of-type{border-top:none}
+.eq-val{font-weight:700;color:#E8F0F6}
+.eq-badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;border-radius:20px;padding:3px 10px}
+.eq-badge.on{background:rgba(70,214,140,.15);color:#46D68C}
+.eq-badge.off{background:rgba(126,147,168,.15);color:#7E93A8}
+.eq-badge.defrost-on{background:rgba(242,179,61,.18);color:#F2B33D}
+.eq-hora{font-size:11px;color:#56697C;margin-top:8px;text-align:right}
+.eq-refrescar{width:100%;border:1px solid #24364A;border-radius:11px;padding:12px;margin-top:4px;margin-bottom:8px;
+  background:#16222F;color:#4FD8E0;font-size:14px;font-weight:700}
+.eq-refrescar:active{background:#1D2E3F}
+
 /* Modales */
 .modal-fondo{display:none;position:fixed;z-index:20;inset:0;background:rgba(8,13,19,.78)}
 .modal-fondo.visible{display:block}
@@ -272,6 +288,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
       <span class="ic">➕</span><span class="tx"><b>Cargar tarea</b><small>Asignar trabajo al equipo, con plazo</small></span></button>
     <button class="accion" id="btn-reportes" style="display:none;border-left:5px solid #FFB020" onclick="abrirReportes()">
       <span class="ic">📥</span><span class="tx"><b>Reportes de producci&oacute;n <span class="badge-t" id="badge-rep" style="display:none"></span></b><small>Lo que carg&oacute; producci&oacute;n: convert&iacute;s o descart&aacute;s</small></span></button>
+    <button class="accion" id="btn-equipos" style="border-left:5px solid #4FD8E0" onclick="abrirEquipos()">
+      <span class="ic">&#10052;&#65039;</span><span class="tx"><b>Ver equipos de fr&iacute;o</b><small>Temperatura y estado en vivo &mdash; T&uacute;nel 1 y T&uacute;nel 2</small></span></button>
   </div>
 
   <div class="seccion" id="sec-mias" style="display:none">
@@ -391,6 +409,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     <div class="aviso-error" id="sop-error"></div>
     <button class="btn btn-ok" onclick="guardarSoporte()">Guardar</button>
     <button class="btn-gris" onclick="cerrarModales()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL EQUIPOS DE FRÍO (XWEB) ============ -->
+<div class="modal-fondo" id="m-equipos">
+  <div class="modal">
+    <h3>❄️ Equipos de frío</h3>
+    <div class="sub">Datos en vivo del XWEB — Túnel 1 y Túnel 2.</div>
+    <div id="eq-cuerpo"><div class="vacio">Consultando…</div></div>
+    <button class="eq-refrescar" onclick="cargarEquipos()">🔄 Actualizar</button>
+    <button class="btn-gris" onclick="cerrarModales()">Cerrar</button>
   </div>
 </div>
 
@@ -861,6 +890,56 @@ function salir(){
   SES.nombre=null; detenerPollingTareas();
   $("scr-home").className="pantalla"; $("scr-login").className="pantalla visible";
   volverANombres();
+}
+
+/* ---------------- EQUIPOS DE FRÍO (XWEB) ---------------- */
+function abrirEquipos(){
+  abrir("m-equipos");
+  $("eq-cuerpo").innerHTML="<div class='vacio'>Consultando…</div>";
+  cargarEquipos();
+}
+function cargarEquipos(){
+  if(!CONFIG.SHEET_URL){ $("eq-cuerpo").innerHTML="<div class='aviso-error'>Sin conexión configurada</div>"; return; }
+  if(!navigator.onLine){ $("eq-cuerpo").innerHTML="<div class='aviso-error'>Sin señal — probá de nuevo con conexión</div>"; return; }
+  $("eq-cuerpo").innerHTML="<div class='vacio'>Consultando…</div>";
+  var url=CONFIG.SHEET_URL+"?action=getEquiposFrio&ts="+Date.now();
+  var x=new XMLHttpRequest();
+  x.open("GET",url,true); x.timeout=25000;
+  x.onload=function(){
+    try{
+      var res=JSON.parse(x.responseText);
+      renderEquipos(res);
+    }catch(e){
+      $("eq-cuerpo").innerHTML="<div class='aviso-error'>No se pudo leer la respuesta del XWEB</div>";
+    }
+  };
+  x.onerror=function(){ $("eq-cuerpo").innerHTML="<div class='aviso-error'>Sin conexión con el servidor</div>"; };
+  x.ontimeout=function(){ $("eq-cuerpo").innerHTML="<div class='aviso-error'>El XWEB tardó demasiado en responder — probá de nuevo</div>"; };
+  x.send();
+}
+function renderEquipos(res){
+  if(!res || res.error){ $("eq-cuerpo").innerHTML="<div class='aviso-error'>"+(res&&res.error?res.error:"No se pudo consultar el XWEB")+"</div>"; return; }
+  var lista = res.equipos || res, i, e, html="";
+  if(!lista || !lista.length){ $("eq-cuerpo").innerHTML="<div class='vacio'>Sin datos</div>"; return; }
+  for(i=0;i<lista.length;i++){
+    e=lista[i];
+    if(e.error){
+      html+="<div class='eq-card'><div class='eq-nombre'>"+(e.nombre||("Equipo "+e.duid))+"</div>"+
+        "<div class='aviso-error'>"+e.error+"</div></div>";
+      continue;
+    }
+    var compOn=e.compresorOn, defOn=e.defrost;
+    html+="<div class='eq-card'>"+
+      "<div class='eq-nombre'>"+e.nombre+"</div>"+
+      "<div class='eq-fila'><span>SetPoint</span><span class='eq-val'>"+e.setPoint+" °C</span></div>"+
+      "<div class='eq-fila'><span>Temp. ambiente</span><span class='eq-val'>"+e.tempAmb+" °C</span></div>"+
+      "<div class='eq-fila'><span>Temp. evaporador</span><span class='eq-val'>"+e.tempEvap+" °C</span></div>"+
+      "<div class='eq-fila'><span>Compresor</span><span class='eq-badge "+(compOn?"on":"off")+"'>"+(compOn?"FUNCIONANDO":"PARADO")+"</span></div>"+
+      "<div class='eq-fila'><span>Descongelamiento</span><span class='eq-badge "+(defOn?"defrost-on":"off")+"'>"+(defOn?"EN CURSO":"NO")+"</span></div>"+
+      "<div class='eq-hora'>Última lectura: "+(e.hora||"—")+"</div>"+
+      "</div>";
+  }
+  $("eq-cuerpo").innerHTML=html;
 }
 
 /* ---------------- TAREAS (OT del backlog) ---------------- */
